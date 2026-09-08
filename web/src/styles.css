@@ -38,6 +38,22 @@ body {
   clip: rect(0, 0, 0, 0);
 }
 
+.brand-logo {
+  display: block;
+  height: 2.1rem;
+  width: auto;
+}
+
+.brand-logo.compact {
+  height: 1.7rem;
+}
+
+.gate-card .brand-logo.invert {
+  height: 2.4rem;
+  margin-bottom: 0.85rem;
+  filter: invert(1);
+}
+
 .eyebrow {
   margin: 0 0 0.4rem;
   letter-spacing: 0.18em;

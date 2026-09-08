@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
+import brandLogo from "./assets/brand-logo.png";
 import {
   api,
   clearCurrentId,
@@ -182,8 +183,8 @@ export default function App() {
     return (
       <div className="gate">
         <div className="gate-card">
-          <p className="eyebrow">我依旧陪在你身边</p>
-          <h1>玫莉蔻</h1>
+          <BrandMark invert />
+          <h1 className="sr-only">玫莉蔻</h1>
           <p className="gate-copy">
             皮肤问答专家。懂肤质、屏障和护理里那些烦，陪你把皮肤的事说清楚。这是 AI 陪伴，不是真人，也不会上门。
           </p>
@@ -203,8 +204,8 @@ export default function App() {
     return (
       <div className="gate">
         <div className="gate-card">
-          <p className="eyebrow">我依旧陪在你身边</p>
-          <h1>玫莉蔻</h1>
+          <BrandMark invert />
+          <h1 className="sr-only">玫莉蔻</h1>
           <p className="gate-copy">开始之前请选择性别。之后会按这个称呼你：女性称姐姐，男性称哥哥。</p>
           <div className="gender-choices">
             <button
@@ -235,8 +236,7 @@ export default function App() {
     <div className="shell">
       <aside className={railOpen ? "rail open" : "rail"}>
         <div className="brand">
-          <p className="eyebrow">我依旧陪在你身边</p>
-          <strong>玫莉蔻</strong>
+          <BrandMark />
         </div>
         <button className="ghost" type="button" onClick={() => createConversation().catch((error: Error) => setStatus(error.message))}>
           新对话
@@ -271,7 +271,9 @@ export default function App() {
             ☰
           </button>
           <div>
-            <h2>玫莉蔻</h2>
+            <h2>
+              <BrandMark compact />
+            </h2>
             <p className="disclosure">{disclosure}</p>
           </div>
         </header>
@@ -315,6 +317,13 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function BrandMark({ invert = false, compact = false }: { invert?: boolean; compact?: boolean }) {
+  const className = ["brand-logo", invert ? "invert" : "", compact ? "compact" : ""]
+    .filter(Boolean)
+    .join(" ");
+  return <img className={className} src={brandLogo} alt="玫莉蔻" />;
 }
 
 function lastAssistant(messages: ChatMessage[]): string {

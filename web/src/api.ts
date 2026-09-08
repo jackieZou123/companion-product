@@ -24,45 +24,82 @@ const KEYS = {
 
 export type UserGender = "female" | "male";
 
+function newUserId(): string {
+  // http://局域网 IP 不是安全上下文，没有 crypto.randomUUID
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function storageGet(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* 隐私模式写不了，会话内仍用内存 id */
+  }
+}
+
 export function loadUserId(): string {
-  const existing = localStorage.getItem(KEYS.user);
+  const existing = storageGet(KEYS.user);
   if (existing) return existing;
-  const created = crypto.randomUUID();
-  localStorage.setItem(KEYS.user, created);
+  const created = newUserId();
+  storageSet(KEYS.user, created);
   return created;
 }
 
 export function loadAdult(): boolean {
-  return localStorage.getItem(KEYS.adult) === "1";
+  return storageGet(KEYS.adult) === "1";
 }
 
 export function saveAdult(): void {
-  localStorage.setItem(KEYS.adult, "1");
+  storageSet(KEYS.adult, "1");
 }
 
 export function loadGender(): UserGender | "" {
-  const value = localStorage.getItem(KEYS.gender);
+  const value = storageGet(KEYS.gender);
   return value === "female" || value === "male" ? value : "";
 }
 
 export function saveGender(gender: UserGender): void {
-  localStorage.setItem(KEYS.gender, gender);
+  storageSet(KEYS.gender, gender);
 }
 
 export function clearGender(): void {
-  localStorage.removeItem(KEYS.gender);
+  try {
+    localStorage.removeItem(KEYS.gender);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function loadCurrentId(): string {
-  return localStorage.getItem(KEYS.current) || "";
+  return storageGet(KEYS.current) || "";
 }
 
 export function saveCurrentId(id: string): void {
-  localStorage.setItem(KEYS.current, id);
+  storageSet(KEYS.current, id);
 }
 
 export function clearCurrentId(): void {
-  localStorage.removeItem(KEYS.current);
+  try {
+    localStorage.removeItem(KEYS.current);
+  } catch {
+    /* ignore */
+  }
 }
 
 function headers(userId: string): HeadersInit {
