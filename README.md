@@ -13,11 +13,14 @@
 ## 架构
 
 ```
+web/                    # React（Vite）陪伴页源码
 src/app/
   index.py              # 入口：uvicorn app.index:app
+  web/                  # React 构建产物，由 FastAPI 托管
   pages/                # HTTP 路由
     index.py            # / /healthz /readyz /metrics
     conversations.py    # /v1/conversations
+
   dialogue/             # LangGraph 编排
   character/            # 角色 Profile
   llm/                  # 供应商适配
@@ -45,21 +48,21 @@ src/app/
 
 ## 当前能力
 
-- `POST /v1/conversations` 创建一对一会话（`X-User-Id` + `adult_confirmed`）
+- `POST /v1/conversations` 创建一对一会话（`X-User-Id` + `adult_confirmed` + `gender`）
 - `GET /v1/conversations` 当前用户的会话列表
 - `GET /v1/conversations/{id}` 含历史消息；别人的会话返回 404
 - `DELETE /v1/conversations/{id}` 删除一条会话
 - `GET /v1/me/export` / `DELETE /v1/me` 导出或清空该用户数据
 - `POST /v1/conversations/{id}/turns` 完整一轮
 - `POST /v1/conversations/{id}/turns/stream` SSE：`safety` / `react` / `token` / `done`
-- 角色「周德贵」：四川农村老爷爷、老辈子口吻，不懂也不装懂科技；创建会话返回 AI 披露
-- 呼唤联动：喊「老辈子」走回复池；带情绪则走对应池（伤心、开心、愤怒、感慨等）；纯呼唤不调模型
+- 角色「玫莉蔻」：皮肤问答专家，陪人说皮肤的事，不接工单、不当医生；创建会话返回 AI 披露
+- 呼唤联动：喊「玫莉蔻」走回复池；带情绪则走对应池（伤心、开心、愤怒、感慨等）；纯呼唤不调模型
 - 规则安全门：未成年、自伤、越权改身份、违法协助；生成后再审出口（自称真人 / 教违法）
 - 模型超时与重试、主模型失败后备用供应商、再失败则角色口吻降级
 - JSON 日志（带 request_id）、`x-request-id`、CORS
 - `/healthz` `/readyz`（未就绪 503）`/metrics`（turn 的 P50 / P95）
 - 固定评测集：人设、拒绝、重复率（`src/app/eval/datasets/`，硬规则打分）
-- Alembic 迁移：`make migrate`；CI 跑 pyrefly + pytest
+- 陪伴对话页：React（Vite）。源码 `web/`，构建后由 FastAPI 在 `/` 托管；成年确认、AI 披露、SSE。接口文档仍在 `/docs`
 
 ## 下一步
 
@@ -80,16 +83,26 @@ pip install -e ".[dev]" -i https://mirrors.aliyun.com/pypi/simple/ --trusted-hos
 uvicorn app.index:app --reload --host 0.0.0.0 --port 8000
 ```
 
+浏览器打开 `http://127.0.0.1:8000`。接口文档在 `/docs`。
+
+改前端：
+
+```bash
+cd web && npm install && npm run dev
+```
+
+热更新在 `http://127.0.0.1:5173`，接口代理到 8000。发布前 `make web` 把构建产物写进 `src/app/web`。
+
 ```bash
 curl -s http://127.0.0.1:8000/readyz
 curl -s http://127.0.0.1:8000/v1/conversations \
   -H 'content-type: application/json' \
   -H 'X-User-Id: u_1' \
-  -d '{"character_id":"zhou_de_gui","adult_confirmed":true}'
+  -d '{"character_id":"mei_li_kou","adult_confirmed":true,"gender":"female"}'
 curl -s http://127.0.0.1:8000/v1/conversations/<conversation_id>/turns \
   -H 'content-type: application/json' \
   -H 'X-User-Id: u_1' \
-  -d '{"text":"地里活干不完，腰又酸"}'
+  -d '{"text":"脸干得发紧，晚上还刺"}'
 curl -N http://127.0.0.1:8000/v1/conversations/<conversation_id>/turns/stream \
   -H 'content-type: application/json' \
   -H 'X-User-Id: u_1' \
@@ -124,5 +137,5 @@ docker run --env-file .env -p 8000:8000 companion:0.1.0
 - **规则门禁先于模型**：未成年与危机话术在图节点拦截。
 - **消息全量落库，上下文窗口截断**：不把「模型能看多少」和「用户数据留多久」绑死。
 - **SSE 先于 WebSocket**：先把流式生成做稳，打断和全双工下一轮再上。
-- **一个角色先做深**：先把周德贵的一致性做硬，再开放用户自建角色。
+- **一个角色先做深**：仓库只留玫莉蔻；旧身份已作废。先把她的一致性做硬，再开放用户自建角色。
 - **主观体验进固定样本**：人设、拒绝、重复率用仓库 JSON + 硬规则打分；LangSmith 是追踪和同步，不是验收本身。
