@@ -6,7 +6,7 @@ def test_root_serves_companion_ui():
         response = client.get("/", follow_redirects=False)
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
-        assert "我依旧陪在你身边" in response.text
+        assert "玫莉蔻" in response.text
 
 
 def test_companion_assets_are_served():

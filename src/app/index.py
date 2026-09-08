@@ -27,6 +27,7 @@ from app.safety import SafetyPolicy
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """给每个请求补 x-request-id，方便对日志。"""
+
     async def dispatch(self, request: Request, call_next):
         request_id = request.headers.get("x-request-id") or str(uuid4())
         request.state.request_id = request_id
@@ -75,7 +76,7 @@ def create_app(
         await engine.dispose()
 
     app = FastAPI(
-        title="我依旧陪在你身边",
+        title="玫莉蔻",
         version="0.1.0",
         summary="面向成年用户的一对一中文 AI 陪伴对话内核",
         lifespan=lifespan,

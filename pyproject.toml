@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "companion"
 version = "0.1.0"
-description = "我依旧陪在你身边：面向成年用户的中文 AI 陪伴对话内核"
+description = "玫莉蔻：面向成年用户的中文 AI 陪伴对话内核"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

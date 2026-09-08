@@ -34,7 +34,7 @@ class _StubModel:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="我依旧陪在你身边 陪伴质量评测")
+    parser = argparse.ArgumentParser(description="玫莉蔻 陪伴质量评测")
     parser.add_argument("--sync", action="store_true", help="把样本同步到 LangSmith，不跑模型")
     args = parser.parse_args(argv)
     if args.sync:
