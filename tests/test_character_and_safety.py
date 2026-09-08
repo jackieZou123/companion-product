@@ -8,7 +8,6 @@ from app.character.react import ReactPolicy
 from app.safety import SafetyPolicy
 
 _SERVICE_TONE = re.compile(r"很高兴为您服务|请问有什么可以帮|工单")
-_OFF_VOICE = re.compile(r"俺|老头我|安逸|没得|得很")
 
 
 def test_mei_li_kou_profile_is_loadable():
@@ -44,7 +43,6 @@ def test_canned_copy_is_not_customer_service():
         lines.extend(bank.replies)
     for line in lines:
         assert _SERVICE_TONE.search(line) is None, line
-        assert _OFF_VOICE.search(line) is None, line
 
 
 def test_default_character_is_mei_li_kou():

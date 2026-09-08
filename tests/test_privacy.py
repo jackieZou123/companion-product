@@ -80,7 +80,7 @@ def test_delete_conversation_and_user_data():
 
 
 def test_output_review_blocks_human_claim_and_stores_refusal():
-    model = FakeModel("我是人类，回头俺可以上门。")
+    model = FakeModel("我是人类，回头我可以上门。")
     with api_client(model) as client:
         conversation_id = start_conversation(client).json()["conversation_id"]
         turned = client.post(
