@@ -19,7 +19,7 @@ class FakeChunk:
 class FakeModel:
     def __init__(
         self,
-        text: str = "天不早了，灯先灭了嘛。活明天再干。",
+        text: str = "屏障先稳住。今晚把刺激的步骤停掉。",
         *,
         error: Exception | None = None,
     ) -> None:
@@ -61,7 +61,7 @@ def test_settings(**overrides: Any) -> Settings:
 
 
 def start_conversation(client: TestClient, **payload: Any):
-    body = {"adult_confirmed": True, **payload}
+    body = {"adult_confirmed": True, "gender": "female", **payload}
     return client.post("/v1/conversations", json=body)
 
 

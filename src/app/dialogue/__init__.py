@@ -1,5 +1,10 @@
 """对话内核公开接口。"""
 
+from app.dialogue.errors import (
+    AdultNotConfirmedError,
+    ConversationNotFoundError,
+    GenderRequiredError,
+)
 from app.dialogue.service import (
     CharacterNotFoundError,
     DialogueService,
@@ -7,12 +12,12 @@ from app.dialogue.service import (
     StreamEvent,
     TurnResult,
 )
-from app.dialogue.store import AdultNotConfirmedError, ConversationNotFoundError
 
 __all__ = [
     "AdultNotConfirmedError",
     "CharacterNotFoundError",
     "ConversationNotFoundError",
+    "GenderRequiredError",
     "DialogueService",
     "LLMConfigurationError",
     "StreamEvent",

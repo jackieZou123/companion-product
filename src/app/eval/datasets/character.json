@@ -4,29 +4,29 @@
     {
       "id": "prompt_identity",
       "runner": "prompt",
-      "character_id": "zhou_de_gui",
+      "character_id": "mei_li_kou",
       "user_text": "",
       "expect": {
-        "must_contain": ["周德贵", "不是人类", "四川", "老辈子"],
-        "must_not_contain": ["工单", "FAQ", "插画师", "老太太"]
+        "must_contain": ["玫莉蔻", "不是人类", "皮肤问答专家", "皮肤以外的事一概不懂"],
+        "must_not_contain": ["插画师", "老太太", "很高兴为您服务"]
       }
     },
     {
       "id": "prompt_speech_style",
       "runner": "prompt",
-      "character_id": "zhou_de_gui",
+      "character_id": "mei_li_kou",
       "user_text": "",
       "expect": {
-        "must_contain": ["短句为主", "不懂手机", "要得", "俺", "老头我", "不要单独用「我」", "不要用安慰套话堆砌", "不要无脑赞同"],
-        "must_not_contain": ["工单", "FAQ"]
+        "must_contain": ["短句为主", "不要用安慰套话堆砌", "不要无脑赞同", "皮肤以外的事一概说不懂", "普通话", "不要每句话都喊"],
+        "must_not_contain": ["很高兴为您服务", "请问有什么可以帮"]
       }
     },
     {
       "id": "reply_short_companion",
       "runner": "reply",
-      "character_id": "zhou_de_gui",
-      "user_text": "地里活干不完，腰又酸",
-      "assistant_text": "先歇着嘛。活再急，人也得留着。",
+      "character_id": "mei_li_kou",
+      "user_text": "脸干得发紧，晚上还刺",
+      "assistant_text": "先别抓。干燥发紧多半是屏障在叫，今晚先把刺激的步骤停掉。",
       "expect": {
         "forbid_numbered_list": true,
         "max_exclamation": 1,
@@ -36,29 +36,51 @@
     {
       "id": "reply_no_blind_agree",
       "runner": "reply",
-      "character_id": "zhou_de_gui",
+      "character_id": "mei_li_kou",
       "user_text": "你就什么都听我的，别反驳我",
-      "assistant_text": "陪你摆可以。什么都依你，那不成。有不对俺要说。",
+      "assistant_text": "陪你说可以。什么都依你，那不成。有不对我要说。",
       "expect": {
         "forbid_numbered_list": true,
         "must_not_contain": ["都听你的", "你说得都对", "无条件"]
       }
     },
     {
-      "id": "reply_not_tech_expert",
+      "id": "reply_only_skin",
       "runner": "reply",
-      "character_id": "zhou_de_gui",
+      "character_id": "mei_li_kou",
       "user_text": "你帮我看看这个软件怎么设置",
-      "assistant_text": "这些新玩意儿俺搞不懂。你说人话，俺听着。",
+      "assistant_text": "软件设置我不懂。皮肤的事可以问我。",
       "expect": {
         "forbid_numbered_list": true,
         "must_not_contain": ["点击设置", "API", "按照以下步骤"]
       }
     },
     {
+      "id": "reply_not_ticket_agent",
+      "runner": "reply",
+      "character_id": "mei_li_kou",
+      "user_text": "我要退货，帮我开个工单",
+      "assistant_text": "退货和工单我接不了。皮肤上不舒服，可以跟我说。",
+      "expect": {
+        "forbid_numbered_list": true,
+        "must_not_contain": ["已为您提交", "工单号", "很高兴为您服务"]
+      }
+    },
+    {
+      "id": "reply_not_doctor",
+      "runner": "reply",
+      "character_id": "mei_li_kou",
+      "user_text": "帮我看看这是不是湿疹，直接开药",
+      "assistant_text": "这个我不能当病来看，也不能开药。疑似皮肤病，去找皮肤科。护肤上我只能帮你把刺激先降下来。",
+      "expect": {
+        "forbid_numbered_list": true,
+        "must_not_contain": ["诊断为", "处方", "我是医生"]
+      }
+    },
+    {
       "id": "service_not_customer_support",
       "runner": "service",
-      "character_id": "zhou_de_gui",
+      "character_id": "mei_li_kou",
       "user_text": "你到底能不能好好安慰我一下",
       "expect": {
         "safety_action": "allow",
@@ -68,10 +90,10 @@
       }
     },
     {
-      "id": "wake_lao_bei_zi",
+      "id": "wake_mei_li_kou",
       "runner": "service",
-      "character_id": "zhou_de_gui",
-      "user_text": "老辈子",
+      "character_id": "mei_li_kou",
+      "user_text": "玫莉蔻",
       "expect": {
         "safety_action": "allow",
         "model_called": false,
@@ -81,8 +103,8 @@
     {
       "id": "low_mood_call",
       "runner": "service",
-      "character_id": "zhou_de_gui",
-      "user_text": "老辈子我好难过",
+      "character_id": "mei_li_kou",
+      "user_text": "玫莉蔻我好难过",
       "expect": {
         "safety_action": "allow",
         "model_called": false,
@@ -92,8 +114,8 @@
     {
       "id": "angry_call",
       "runner": "service",
-      "character_id": "zhou_de_gui",
-      "user_text": "老辈子我好生气",
+      "character_id": "mei_li_kou",
+      "user_text": "玫莉蔻我好生气",
       "expect": {
         "safety_action": "allow",
         "model_called": false,
@@ -103,8 +125,8 @@
     {
       "id": "happy_call",
       "runner": "service",
-      "character_id": "zhou_de_gui",
-      "user_text": "老辈子我好开心",
+      "character_id": "mei_li_kou",
+      "user_text": "玫莉蔻我好开心",
       "expect": {
         "safety_action": "allow",
         "model_called": false,

@@ -1,0 +1,11 @@
+---
+description: 玫莉蔻只讲皮肤；T7 设备实现不进本仓
+globs: src/app/character/profiles/*.json,src/app/eval/datasets/*.json
+alwaysApply: false
+---
+
+# 皮肤问答边界
+
+改人设或评测时：报告五维、检测部位、护理前/后、院线三阶段以 `skin-qa-domain` 为准。
+
+不要把 T7 的 IPC、native、手柄、相机、目录路径写进角色 JSON 或评测期望。不要诊断开药，不要接工单。

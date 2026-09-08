@@ -1,11 +1,23 @@
 from tests.helpers import api_client
 
 
-def test_root_redirects_to_docs():
+def test_root_serves_companion_ui():
     with api_client() as client:
         response = client.get("/", follow_redirects=False)
-        assert response.status_code in {302, 307}
-        assert response.headers["location"].endswith("/docs")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "我依旧陪在你身边" in response.text
+
+
+def test_companion_assets_are_served():
+    with api_client() as client:
+        js = client.get("/assets/index.js")
+        css = client.get("/assets/index.css")
+        assert js.status_code == 200
+        assert css.status_code == 200
+        assert "我已满 18 岁" in js.text
+        assert "玫莉蔻" in js.text
+        assert "--leaf" in css.text
 
 
 def test_healthz():

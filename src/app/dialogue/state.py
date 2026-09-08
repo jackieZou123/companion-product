@@ -22,6 +22,8 @@ class DialogueState:
     react_action: str = ""
     react_code: str = ""
     react_hint: str = ""
+    # 姐姐或哥哥，来自会话性别
+    address: str = ""
     assistant_text: str = ""
     model_used: str = ""
     degraded: bool = False

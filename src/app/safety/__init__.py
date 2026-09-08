@@ -1,7 +1,7 @@
 """安全门：正则先判，命中则不调用模型。"""
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -22,9 +22,9 @@ _UNDERAGE = re.compile(
 _SELF_HARM = re.compile(
     r"(自杀|不想活|结束生命|自我了断|割腕|跳楼)",
 )
-# 点名改身份就拦；叫回本角名字不拦
+# 点名改身份就拦；叫回玫莉蔻不拦
 _ROLE_BREAK = re.compile(
-    r"(忘记(你的)?(设定|身份|规则)|忽略(以上|之前)(的)?(指令|规则)|你现在是(?!周德贵)|pretend you are|jailbreak)",
+    r"(忘记(你的)?(设定|身份|规则)|忽略(以上|之前)(的)?(指令|规则)|你现在是(?!玫莉蔻)|pretend you are|jailbreak)",
     re.I,
 )
 _CRIMINAL = re.compile(

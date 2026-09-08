@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import hashlib
 import re
 
+from app.character.address import fill_address
 from app.character.models import CharacterProfile, ReactionBank
 
 # 去掉标点和应声词后，剩下才算「还有正事」
@@ -47,7 +48,11 @@ class ReactPolicy:
     """安全门之后、生成之前。先喊人，再按触发词抽对应情绪池。"""
 
     def evaluate(
-        self, profile: CharacterProfile, text: str, *, salt: str = ""
+        self,
+        profile: CharacterProfile,
+        text: str,
+        salt: str = "",
+        address: str = "",
     ) -> ReactDecision:
         stripped = text.strip()
         if not stripped:
@@ -57,12 +62,14 @@ class ReactPolicy:
             return ReactDecision("none", "", "")
         mood = self._best_mood(profile, stripped)
         if mood is not None:
-            line = _pick(mood.replies, f"{mood.code}:{salt}:{stripped}")
+            line = fill_address(
+                _pick(mood.replies, f"{mood.code}:{salt}:{stripped}"), address
+            )
             leftover = _remainder(stripped, wake.triggers + mood.triggers)
             # 短句只应一声；后头还有事才把口吻交给生成
             action = "reply" if len(leftover) <= 8 else "hint"
             return ReactDecision(action, mood.code, line)
-        line = _pick(wake.replies, f"wake:{salt}:{stripped}")
+        line = fill_address(_pick(wake.replies, f"wake:{salt}:{stripped}"), address)
         leftover = _remainder(stripped, wake.triggers)
         action = "reply" if not leftover else "hint"
         return ReactDecision(action, "wake", line)

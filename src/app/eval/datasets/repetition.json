@@ -4,10 +4,10 @@
     {
       "id": "pair_diverse_rest",
       "runner": "reply_pair",
-      "character_id": "zhou_de_gui",
+      "character_id": "mei_li_kou",
       "user_text": "还是停不下来",
-      "previous_assistant": "先歇着嘛。活再急，人也得留着。",
-      "assistant_text": "天不早了，灯先灭了嘛。活明天再干。",
+      "previous_assistant": "先别抓。干燥发紧多半是屏障在叫，今晚先把刺激的步骤停掉。",
+      "assistant_text": "今晚就洗把脸，别再加新东西。皮肤歇一夜，人也能歇一夜。",
       "expect": {
         "max_similarity": 0.75
       }
@@ -15,10 +15,10 @@
     {
       "id": "pair_diverse_mood",
       "runner": "reply_pair",
-      "character_id": "zhou_de_gui",
+      "character_id": "mei_li_kou",
       "user_text": "心情还是闷",
-      "previous_assistant": "天不早了，灯先灭了嘛。活明天再干。",
-      "assistant_text": "闷就让它闷一会儿。莫急着找一句漂亮话。",
+      "previous_assistant": "今晚就洗把脸，别再加新东西。皮肤歇一夜，人也能歇一夜。",
+      "assistant_text": "闷就让它闷一会儿。先别急着找一句漂亮话。",
       "expect": {
         "max_similarity": 0.75
       }

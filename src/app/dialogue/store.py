@@ -9,7 +9,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import selectinload
 
+from app.character.address import address_for
 from app.db.models import ConversationRow, MessageRow
+from app.dialogue.errors import (
+    AdultNotConfirmedError,
+    ConversationNotFoundError,
+    GenderRequiredError,
+)
 from app.dialogue.state import HistoryMessage
 
 
@@ -25,16 +31,9 @@ class Conversation:
     created_at: datetime
     updated_at: datetime
     adult_confirmed: bool = True
+    gender: str = "female"
     messages: list[HistoryMessage] = field(default_factory=list)
     message_count: int = 0
-
-
-class ConversationNotFoundError(KeyError):
-    pass
-
-
-class AdultNotConfirmedError(PermissionError):
-    """创建会话必须显式确认成年。不能靠模型自觉。"""
 
 
 # 数据库会话存储器
@@ -49,16 +48,26 @@ class SqlConversationStore:
             await session.execute(text("SELECT 1"))
 
     async def create(
-        self, user_id: str, character_id: str, *, adult_confirmed: bool
+        self,
+        user_id: str,
+        character_id: str,
+        *,
+        adult_confirmed: bool,
+        gender: str,
     ) -> Conversation:
         if not adult_confirmed:
             raise AdultNotConfirmedError()
+        try:
+            address_for(gender)
+        except ValueError as exc:
+            raise GenderRequiredError() from exc
         now = _utcnow()
         row = ConversationRow(
             id=str(uuid4()),
             user_id=user_id,
             character_id=character_id,
             adult_confirmed=True,
+            gender=gender,
             created_at=now,
             updated_at=now,
         )
@@ -245,6 +254,7 @@ def _to_conversation(
         created_at=row.created_at,
         updated_at=row.updated_at,
         adult_confirmed=bool(row.adult_confirmed),
+        gender=row.gender or "female",
         messages=[
             HistoryMessage(role=item["role"], content=item["content"])
             for item in packed

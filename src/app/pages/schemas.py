@@ -2,18 +2,26 @@
 
 from datetime import datetime
 
+from typing import Literal
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.character import CharacterNotFoundError
-from app.dialogue import AdultNotConfirmedError, ConversationNotFoundError, LLMConfigurationError
+from app.dialogue.errors import (
+    AdultNotConfirmedError,
+    ConversationNotFoundError,
+    GenderRequiredError,
+)
+from app.dialogue.service import LLMConfigurationError
 from app.dialogue.store import Conversation
 
 
 class CreateConversationBody(BaseModel):
     character_id: str | None = None
     adult_confirmed: bool = False
+    gender: Literal["female", "male"] = Field(..., description="female 称姐姐，male 称哥哥")
 
 
 class MessageOut(BaseModel):
@@ -26,6 +34,7 @@ class ConversationOut(BaseModel):
     user_id: str
     character_id: str
     adult_confirmed: bool = True
+    gender: Literal["female", "male"] = "female"
     ai_disclosure: str = ""
     messages: list[MessageOut] = []
 
@@ -38,6 +47,7 @@ class ConversationOut(BaseModel):
             user_id=conversation.user_id,
             character_id=conversation.character_id,
             adult_confirmed=conversation.adult_confirmed,
+            gender="male" if conversation.gender == "male" else "female",
             ai_disclosure=disclosure,
             messages=[
                 MessageOut(role=item["role"], content=item["content"])
@@ -90,6 +100,10 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AdultNotConfirmedError)
     async def adult_not_confirmed(_: Request, __: AdultNotConfirmedError):
         return JSONResponse(status_code=403, content={"detail": "需要确认已成年"})
+
+    @app.exception_handler(GenderRequiredError)
+    async def gender_required(_: Request, __: GenderRequiredError):
+        return JSONResponse(status_code=422, content={"detail": "需要选择性别"})
 
     @app.exception_handler(CharacterNotFoundError)
     async def character_not_found(_: Request, __: CharacterNotFoundError):

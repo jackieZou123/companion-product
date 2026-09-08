@@ -31,10 +31,10 @@ class CharacterRepository:
             raise CharacterNotFoundError(character_id) from exc
 
     def default_id(self) -> str:
-        # 项目默认陪伴是周德贵；目录里没有时再退到任意已加载角色
+        # 项目默认陪伴是玫莉蔻；目录里没有时再退到任意已加载角色
         return (
-            "zhou_de_gui"
-            if "zhou_de_gui" in self._profiles
+            "mei_li_kou"
+            if "mei_li_kou" in self._profiles
             else next(iter(self._profiles))
         )
 

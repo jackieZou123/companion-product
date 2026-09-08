@@ -31,12 +31,12 @@ def test_tracing_on_writes_project(monkeypatch: pytest.MonkeyPatch):
 def test_turn_run_config_carries_session_ids():
     config = turn_run_config(
         conversation_id="c1",
-        character_id="zhou_de_gui",
+        character_id="mei_li_kou",
         user_id="u_1",
         request_id="req-9",
         mode="turn",
     )
-    assert config["metadata"]["character_id"] == "zhou_de_gui"
+    assert config["metadata"]["character_id"] == "mei_li_kou"
     assert config["metadata"]["request_id"] == "req-9"
     assert "dialogue" in config["tags"]
 
@@ -44,16 +44,16 @@ def test_turn_run_config_carries_session_ids():
 def test_turn_passes_trace_config_to_model():
     model = FakeModel("先歇一下。")
     with api_client(model) as client:
-        conversation_id = start_conversation(client, character_id="zhou_de_gui").json()[
+        conversation_id = start_conversation(client, character_id="mei_li_kou").json()[
             "conversation_id"
         ]
         turned = client.post(
             f"/v1/conversations/{conversation_id}/turns",
-            json={"text": "地里活干不完，腰又酸"},
+            json={"text": "脸干得发紧，晚上还刺"},
         )
         assert turned.status_code == 200
     assert model.last_config is not None
-    assert model.last_config["metadata"]["character_id"] == "zhou_de_gui"
+    assert model.last_config["metadata"]["character_id"] == "mei_li_kou"
     assert model.last_config["metadata"]["conversation_id"] == conversation_id
 
 

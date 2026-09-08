@@ -47,5 +47,6 @@ description: Applies the 「我依旧陪在你身边」 companion-product JD whe
 - 只接 API、Happy Path、套壳 UI
 - 无限迎合用户
 - 视觉层当成对话智能
+- 禁止AI自己意象起名字。角色名、呼唤词只用用户给定或已有资料；没有就问，不要编花名
 
 改架构或加节点时：先问「这是角色体验、完整链路，还是工程结果？」三件事对不上 JD 的，默认不做。

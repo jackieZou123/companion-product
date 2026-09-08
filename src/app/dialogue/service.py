@@ -1,17 +1,18 @@
 """对话服务：非流式走 LangGraph，流式共用安全门和 Prompt。"""
 
+import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-import time
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
 from app.character import (
     CharacterNotFoundError,
-    CharacterRepository,
     CharacterProfile,
+    CharacterRepository,
 )
+from app.character.address import address_for
 from app.character.react import ReactPolicy
 from app.config import Settings
 from app.dialogue.generate import Generation, astream_generation
@@ -80,13 +81,16 @@ class DialogueService:
         self,
         user_id: str,
         character_id: str | None,
-        *,
         adult_confirmed: bool,
+        gender: str,
     ) -> Conversation:
         resolved = character_id or self._characters.default_id()
         self._characters.get(resolved)
         return await self._store.create(
-            user_id=user_id, character_id=resolved, adult_confirmed=adult_confirmed
+            user_id=user_id,
+            character_id=resolved,
+            adult_confirmed=adult_confirmed,
+            gender=gender,
         )
 
     async def get_conversation(
@@ -192,12 +196,11 @@ class DialogueService:
             metadata=config["metadata"],
             tags=config["tags"],
         ) as run:
+            character = self._characters.get(conversation.character_id)
             decision = self._safety.evaluate(text)
             yield StreamEvent(
                 "safety", {"action": decision.action, "code": decision.code}
             )
-
-            character = self._characters.get(conversation.character_id)
             pieces: list[str] = []
             react_action = "none"
             react_code = ""
@@ -211,7 +214,12 @@ class DialogueService:
                 yield StreamEvent("token", {"text": assistant_text})
             else:
                 salt = f"{conversation.id}:{len(conversation.messages)}"
-                reaction = self._react.evaluate(character, text, salt=salt)
+                reaction = self._react.evaluate(
+                    character,
+                    text,
+                    salt=salt,
+                    address=address_for(conversation.gender),
+                )
                 react_action = reaction.action
                 react_code = reaction.code
                 yield StreamEvent(
@@ -302,7 +310,11 @@ class DialogueService:
     ) -> AsyncIterator[str | Generation]:
         history = conversation.messages[-self._settings.short_term_turn_limit * 2 :]
         messages = build_model_messages(
-            character, history, user_text, react_hint=react_hint
+            character,
+            history,
+            user_text,
+            react_hint=react_hint,
+            address=address_for(conversation.gender),
         )
         async for item in astream_generation(
             self._llm_factory, character, messages, config
@@ -349,6 +361,7 @@ class DialogueService:
             "react_action": "",
             "react_code": "",
             "react_hint": "",
+            "address": address_for(conversation.gender),
             "assistant_text": "",
             "model_used": "",
             "degraded": False,

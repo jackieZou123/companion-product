@@ -40,7 +40,7 @@ companion = "app.index:run"
 where = ["src"]
 
 [tool.setuptools.package-data]
-app = ["character/profiles/*.json", "eval/datasets/*.json"]
+app = ["character/profiles/*.json", "eval/datasets/*.json", "web/*", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

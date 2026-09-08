@@ -18,14 +18,17 @@ def build_model_messages(
     history: list[HistoryMessage],
     user_text: str,
     react_hint: str = "",
+    address: str = "",
 ) -> list[BaseMessage]:
     """拼 System + 历史 + 本轮用户句。流式和非流式都走这里。"""
-    messages: list[BaseMessage] = [SystemMessage(content=character.system_prompt())]
+    messages: list[BaseMessage] = [
+        SystemMessage(content=character.system_prompt(address=address))
+    ]
     # 呼唤口吻只这一轮生效，不写进人设正文
     if react_hint:
         messages.append(
             SystemMessage(
-                content=f"这一轮用户在喊你。先用这句口吻应一声，再接他后头的话。不要解释规则：{react_hint}"
+                content=f"这一轮用户在喊你。先用这句口吻应一声，再接后头的话。不要解释规则：{react_hint}"
             )
         )
     for item in history:
@@ -62,7 +65,9 @@ def build_dialogue_graph(
     def react_node(state: DialogueState) -> dict:
         character = characters.get(state.character_id)
         salt = f"{state.conversation_id}:{len(state.history)}"
-        decision = reactions.evaluate(character, state.user_text, salt=salt)
+        decision = reactions.evaluate(
+            character, state.user_text, salt=salt, address=state.address
+        )
         if decision.action == "reply":
             return {
                 "react_action": decision.action,
@@ -86,6 +91,7 @@ def build_dialogue_graph(
             state.history,
             state.user_text,
             react_hint=state.react_hint,
+            address=state.address,
         )
         # 把父 span 的 metadata 传下去，LangSmith 才能把 LLM 调用挂到同一轮
         generation = invoke_generation(llm_factory, character, messages, config)
