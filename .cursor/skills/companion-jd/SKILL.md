@@ -1,9 +1,9 @@
 ---
 name: companion-jd
-description: Applies the 「我依旧陪在你身边」 companion-product JD when planning, building, or reviewing features. Use when choosing priorities, architecture, eval, memory, safety, voice/avatar bypass, or when the user mentions JD, 岗位, 陪伴质量, P0/P1/P2.
+description: Applies the 玫莉蔻 companion-product JD when planning, building, or reviewing features. Use when choosing priorities, architecture, eval, memory, safety, voice/avatar bypass, or when the user mentions JD, 岗位, 陪伴质量, P0/P1/P2.
 ---
 
-# 「我依旧陪在你身边」岗位要求（决策用）
+# 玫莉蔻岗位要求（决策用）
 
 做任何功能前先对照这份 JD。完整原文见 [reference.md](reference.md)。
 
