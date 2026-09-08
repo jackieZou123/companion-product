@@ -5,12 +5,14 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 import uvicorn
 
 from app.pages.conversations import router as conversation_router
 from app.pages.index import router as health_router
 from app.pages.schemas import register_error_handlers
+from app.pages.site import WEB_DIR
 from app.character import CharacterRepository
 from app.config import Settings, get_settings
 from app.db import create_engine, create_schema, create_session_factory
@@ -89,6 +91,9 @@ def create_app(
     app.state.settings = resolved
     app.include_router(health_router)
     app.include_router(conversation_router)
+    assets = WEB_DIR / "assets"
+    if assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
     return app
 
 

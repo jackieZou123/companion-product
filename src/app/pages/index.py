@@ -3,18 +3,19 @@
 from typing import Any
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.config import Settings
 from app.dialogue import DialogueService
+from app.pages.site import companion_page
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/")
-def root() -> RedirectResponse:
-    """浏览器打开站点时进 Swagger，避免根路径 404。"""
-    return RedirectResponse(url="/docs")
+def root() -> FileResponse:
+    """产品界面。接口文档仍在 /docs。"""
+    return companion_page()
 
 
 @router.get("/healthz")

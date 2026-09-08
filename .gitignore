@@ -1,6 +1,7 @@
 .venv/
 .env
 .cursor/hooks/state/
+web/node_modules/
 __pycache__/
 *.pyc
 *.egg-info/
