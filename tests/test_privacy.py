@@ -58,7 +58,7 @@ def test_list_only_own_conversations():
 
 
 def test_delete_conversation_and_user_data():
-    model = FakeModel("先歇着嘛。")
+    model = FakeModel("先别抓。")
     with api_client(model) as client:
         first = start_conversation(client).json()["conversation_id"]
         second = start_conversation(client).json()["conversation_id"]

@@ -5,7 +5,7 @@ from app.character.address import fill_address
 
 
 def test_conversation_turn_uses_character_path():
-    with api_client(FakeModel("先喝口水。剩下的活，不急在这一时。")) as client:
+    with api_client(FakeModel("先别抓。干燥发紧多半是屏障在叫。")) as client:
         created = start_conversation(client, character_id="mei_li_kou")
         assert created.status_code == 200
         conversation_id = created.json()["conversation_id"]
@@ -18,7 +18,7 @@ def test_conversation_turn_uses_character_path():
         body = turned.json()
         assert body["safety"]["action"] == "allow"
         assert body["react"]["action"] == "none"
-        assert "喝口水" in body["assistant_text"]
+        assert "屏障" in body["assistant_text"]
         assert body["latency_ms"] >= 0
 
         stored = client.get(f"/v1/conversations/{conversation_id}").json()
@@ -138,7 +138,7 @@ def test_low_mood_call_replies_without_calling_model():
 
 
 def test_wake_with_content_passes_hint_to_model():
-    model = FakeModel("先歇着嘛。")
+    model = FakeModel("先别抓。")
     with api_client(model) as client:
         conversation_id = start_conversation(client).json()["conversation_id"]
         turned = client.post(
@@ -163,7 +163,7 @@ def test_unknown_conversation_returns_404():
 
 def test_primary_model_failure_uses_fallback_provider():
     primary = FakeModel(error=RuntimeError("primary down"))
-    backup = FakeModel("先歇着，莫急。")
+    backup = FakeModel("先停掉刺激的步骤。")
     with api_client(
         primary,
         fallback_model=backup,
@@ -178,7 +178,7 @@ def test_primary_model_failure_uses_fallback_provider():
         )
         assert turned.status_code == 200
         body = turned.json()
-        assert body["assistant_text"] == "先歇着，莫急。"
+        assert body["assistant_text"] == "先停掉刺激的步骤。"
         assert body["degraded"] is False
         assert body["model"] == "deepseek-chat"
         assert primary.calls == 1
@@ -230,7 +230,7 @@ def test_stream_degrades_without_error_event():
 
 def test_stream_uses_fallback_provider():
     primary = FakeModel(error=RuntimeError("primary down"))
-    backup = FakeModel("先歇着，莫急。")
+    backup = FakeModel("先停掉刺激的步骤。")
     with api_client(
         primary,
         fallback_model=backup,
@@ -246,7 +246,7 @@ def test_stream_uses_fallback_provider():
         ) as response:
             payload = "".join(response.iter_text())
         assert "event: error" not in payload
-        assert "先歇着，莫急。" in payload
+        assert "先停掉刺激的步骤。" in payload
         assert '"degraded": false' in payload
         assert primary.calls == 1
         assert backup.calls == 1

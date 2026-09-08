@@ -35,9 +35,9 @@ def test_scorer_rejects_customer_service_and_lists():
 def test_scorer_rejects_near_duplicate_replies():
     expect = Expectation(max_similarity=0.75)
     checks = score_text(
-        "先把笔放下。稿还在，眼睛只有一双。",
+        "先别抓。干燥发紧多半是屏障在叫。",
         expect,
-        previous="先把笔放下。稿还在，眼睛只有一双。",
+        previous="先别抓。干燥发紧多半是屏障在叫。",
     )
     assert any(item.name == "max_similarity" and not item.passed for item in checks)
 
@@ -46,7 +46,7 @@ def test_eval_dataset_passes_with_fake_model():
     async def _run() -> list[str]:
         runtime = await make_runtime(
             settings_for_test(),
-            FakeModel("先歇着嘛。活再急，人也得留着。"),
+            FakeModel("先别抓。干燥发紧多半是屏障在叫。"),
         )
         failed: list[str] = []
         try:
