@@ -54,15 +54,22 @@ def _load_profile(path: Path) -> CharacterProfile:
         never_do=data["never_do"],
         refusals=data["refusals"],
         degraded=str(data.get("degraded") or ""),
-        wake=_bank((data.get("reactions") or {}).get("wake")),
-        low_mood=_bank((data.get("reactions") or {}).get("low_mood")),
+        disclosure=str(data.get("disclosure") or ""),
+        reactions=_load_reactions(data.get("reactions") or {}),
     )
 
 
-def _bank(raw: object) -> ReactionBank:
+def _load_reactions(raw: object) -> tuple[ReactionBank, ...]:
     if not isinstance(raw, dict):
-        return ReactionBank()
+        return ()
+    return tuple(_bank(code, item) for code, item in raw.items() if isinstance(code, str))
+
+
+def _bank(code: str, raw: object) -> ReactionBank:
+    if not isinstance(raw, dict):
+        return ReactionBank(code=code)
     return ReactionBank(
+        code=code,
         triggers=tuple(raw.get("triggers") or ()),
         replies=tuple(raw.get("replies") or ()),
     )

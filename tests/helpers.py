@@ -60,6 +60,11 @@ def test_settings(**overrides: Any) -> Settings:
     return Settings(_env_file=None, **data)
 
 
+def start_conversation(client: TestClient, **payload: Any):
+    body = {"adult_confirmed": True, **payload}
+    return client.post("/v1/conversations", json=body)
+
+
 def build_app(
     model: FakeModel | None = None,
     fallback_model: FakeModel | None = None,
@@ -76,7 +81,10 @@ def build_app(
 def api_client(
     model: FakeModel | None = None,
     fallback_model: FakeModel | None = None,
+    *,
+    user_id: str = "u_1",
     **settings_overrides: Any,
 ) -> Generator[TestClient, None, None]:
     with TestClient(build_app(model, fallback_model, **settings_overrides)) as client:
+        client.headers.update({"X-User-Id": user_id})
         yield client

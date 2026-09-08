@@ -24,9 +24,27 @@ class ReactDecision:
         return self.action == "reply"
 
 
+# 同长度触发词时，急的情绪压过轻的；开心放最后，免得盖住难过
+_MOOD_PRIORITY = (
+    "angry",
+    "anxious",
+    "unwell",
+    "lonely",
+    "low_mood",
+    "tired",
+    "lost",
+    "homesick",
+    "sentimental",
+    "missing",
+    "sorry",
+    "grateful",
+    "happy",
+)
+
+
 # 反应策略
 class ReactPolicy:
-    """安全门之后、生成之前。低落呼唤优先于单纯喊人。"""
+    """安全门之后、生成之前。先喊人，再按触发词抽对应情绪池。"""
 
     def evaluate(
         self, profile: CharacterProfile, text: str, *, salt: str = ""
@@ -34,20 +52,40 @@ class ReactPolicy:
         stripped = text.strip()
         if not stripped:
             return ReactDecision("none", "", "")
-        if self._hit(stripped, profile.low_mood) and self._hit(stripped, profile.wake):
-            line = _pick(profile.low_mood.replies, f"low_mood:{salt}:{stripped}")
-            leftover = _remainder(
-                stripped, profile.wake.triggers + profile.low_mood.triggers
-            )
+        wake = profile.wake
+        if not self._hit(stripped, wake):
+            return ReactDecision("none", "", "")
+        mood = self._best_mood(profile, stripped)
+        if mood is not None:
+            line = _pick(mood.replies, f"{mood.code}:{salt}:{stripped}")
+            leftover = _remainder(stripped, wake.triggers + mood.triggers)
             # 短句只应一声；后头还有事才把口吻交给生成
             action = "reply" if len(leftover) <= 8 else "hint"
-            return ReactDecision(action, "low_mood", line)
-        if self._hit(stripped, profile.wake):
-            line = _pick(profile.wake.replies, f"wake:{salt}:{stripped}")
-            leftover = _remainder(stripped, profile.wake.triggers)
-            action = "reply" if not leftover else "hint"
-            return ReactDecision(action, "wake", line)
-        return ReactDecision("none", "", "")
+            return ReactDecision(action, mood.code, line)
+        line = _pick(wake.replies, f"wake:{salt}:{stripped}")
+        leftover = _remainder(stripped, wake.triggers)
+        action = "reply" if not leftover else "hint"
+        return ReactDecision(action, "wake", line)
+
+    def _best_mood(self, profile: CharacterProfile, text: str) -> ReactionBank | None:
+        best: ReactionBank | None = None
+        best_score = (-1, -999)
+        for bank in profile.reactions:
+            if bank.code == "wake" or not bank.enabled():
+                continue
+            hits = [len(trigger) for trigger in bank.triggers if trigger in text]
+            if not hits:
+                continue
+            priority = (
+                _MOOD_PRIORITY.index(bank.code)
+                if bank.code in _MOOD_PRIORITY
+                else len(_MOOD_PRIORITY)
+            )
+            score = (max(hits), -priority)
+            if score > best_score:
+                best = bank
+                best_score = score
+        return best
 
     def _hit(self, text: str, bank: ReactionBank) -> bool:
         return bank.enabled() and any(trigger in text for trigger in bank.triggers)

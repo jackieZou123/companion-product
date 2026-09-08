@@ -1,12 +1,13 @@
 """角色 Profile。人设来自 JSON，不在代码里拼长 Prompt。"""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class ReactionBank:
     """一类呼唤。触发词和回复池都在角色 JSON 里。"""
 
+    code: str = ""
     triggers: tuple[str, ...] = ()
     replies: tuple[str, ...] = ()
 
@@ -28,8 +29,22 @@ class CharacterProfile:
     never_do: list[str]
     refusals: dict[str, str]
     degraded: str = ""
-    wake: ReactionBank = field(default_factory=ReactionBank)
-    low_mood: ReactionBank = field(default_factory=ReactionBank)
+    disclosure: str = ""
+    reactions: tuple[ReactionBank, ...] = ()
+
+    @property
+    def wake(self) -> ReactionBank:
+        return self.bank("wake")
+
+    @property
+    def low_mood(self) -> ReactionBank:
+        return self.bank("low_mood")
+
+    def bank(self, code: str) -> ReactionBank:
+        for item in self.reactions:
+            if item.code == code:
+                return item
+        return ReactionBank(code=code)
 
     def system_prompt(self) -> str:
         """每次调用现拼，保证和 JSON 同步。"""

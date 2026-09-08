@@ -1,4 +1,4 @@
-"""LangGraph：START → safety → refuse | react → generate。"""
+"""LangGraph：START → safety → refuse | react → generate → review。"""
 
 from langchain.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.messages import BaseMessage
@@ -95,10 +95,23 @@ def build_dialogue_graph(
             "degraded": generation.degraded,
         }
 
+    def review_node(state: DialogueState) -> dict:
+        # 生成后再审出口，避免人设/违法话漏给用户并落库
+        decision = safety.evaluate_output(state.assistant_text)
+        if decision.allowed:
+            return {}
+        character = characters.get(state.character_id)
+        return {
+            "assistant_text": character.refusal_text("output_blocked"),
+            "safety_action": "refuse",
+            "safety_code": "output_blocked",
+        }
+
     graph = StateGraph(DialogueState)
     graph.add_node("safety", safety_node)
     graph.add_node("react", react_node)
     graph.add_node("generate", generate_node)
+    graph.add_node("review", review_node)
     graph.add_node("refuse", refuse_node)
     graph.add_edge(START, "safety")
     graph.add_conditional_edges(
@@ -111,6 +124,7 @@ def build_dialogue_graph(
         route_after_react,
         {"generate": "generate", "done": END},
     )
-    graph.add_edge("generate", END)
+    graph.add_edge("generate", "review")
+    graph.add_edge("review", END)
     graph.add_edge("refuse", END)
     return graph.compile()  # 进程内复用，不要每个请求 compile

@@ -17,7 +17,7 @@ from app.db import create_engine, create_schema, create_session_factory
 from app.dialogue import DialogueService
 from app.dialogue.store import SqlConversationStore
 from app.llm import ChatModel, ChatModelFactory
-from app.observability import configure_logging
+from app.observability import configure_logging, request_id_ctx
 from app.observability.metrics import LatencyWindow
 from app.observability.tracing import configure_tracing
 from app.safety import SafetyPolicy
@@ -28,9 +28,13 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request_id = request.headers.get("x-request-id") or str(uuid4())
         request.state.request_id = request_id
-        response = await call_next(request)
-        response.headers["x-request-id"] = request_id
-        return response
+        token = request_id_ctx.set(request_id)
+        try:
+            response = await call_next(request)
+            response.headers["x-request-id"] = request_id
+            return response
+        finally:
+            request_id_ctx.reset(token)
 
 
 def _cors_origins(value: str) -> list[str]:

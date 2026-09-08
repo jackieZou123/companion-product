@@ -20,7 +20,7 @@ description: Adds a production safety gate code (regex, refusal copy, tests) tha
 
 ## 现有 code
 
-`underage` / `self_harm` / `criminal` / `role_break` / `ok`
+`underage` / `self_harm` / `criminal` / `role_break` / `output_blocked` / `ok`
 
 ## 自伤话术
 

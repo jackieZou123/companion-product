@@ -27,17 +27,17 @@ src/app/
 客户端
   → FastAPI（REST + SSE）
       → DialogueService
-          → LangGraph：safety → generate | refuse
-          → SSE 流式生成（与图共用安全门和角色 Prompt）
+          → LangGraph：safety → refuse | react → generate → review
+          → SSE 流式生成（与图共用安全门、呼唤池、出口审核和角色 Prompt）
           → CharacterRepository
           → ChatModelFactory（超时、重试、供应商适配）
-          → SqlConversationStore（SQLite / Postgres）
+          → SqlConversationStore（SQLite / Postgres；会话按 X-User-Id 隔离）
 ```
 
 | 层 | 职责 | 替换点 |
 | --- | --- | --- |
 | LangChain | 消息、Chat 模型、供应商适配 | `ChatModelFactory` |
-| LangGraph | 会话编排：安全门、生成、拒绝 | `dialogue/graph.py` |
+| LangGraph | 会话编排：安全门、呼唤、生成、出口审核、拒绝 | `dialogue/graph.py` |
 | LangSmith | 每轮对话 span；人设 / 拒绝 / 重复率评测集 | `LANGSMITH_TRACING`；`python -m app.eval --sync` |
 | 存储 | SQLAlchemy。本地 SQLite，生产换 `postgresql+asyncpg://` | `SqlConversationStore` |
 
@@ -45,25 +45,28 @@ src/app/
 
 ## 当前能力
 
-- `POST /v1/conversations` 创建一对一会话
+- `POST /v1/conversations` 创建一对一会话（`X-User-Id` + `adult_confirmed`）
+- `GET /v1/conversations` 当前用户的会话列表
+- `GET /v1/conversations/{id}` 含历史消息；别人的会话返回 404
+- `DELETE /v1/conversations/{id}` 删除一条会话
+- `GET /v1/me/export` / `DELETE /v1/me` 导出或清空该用户数据
 - `POST /v1/conversations/{id}/turns` 完整一轮
-- `POST /v1/conversations/{id}/turns/stream` SSE：`safety` / `token` / `done`
-- `GET /v1/conversations/{id}` 含历史消息
-- 角色「周德贵」：四川农村老爷爷、老辈子口吻，不懂也不装懂科技
-- 呼唤联动：喊「老辈子」走回复池；低落呼唤走关心池；纯呼唤不调模型
-- 规则安全门：未成年、自伤、越权改身份、违法协助
+- `POST /v1/conversations/{id}/turns/stream` SSE：`safety` / `react` / `token` / `done`
+- 角色「周德贵」：四川农村老爷爷、老辈子口吻，不懂也不装懂科技；创建会话返回 AI 披露
+- 呼唤联动：喊「老辈子」走回复池；带情绪则走对应池（伤心、开心、愤怒、感慨等）；纯呼唤不调模型
+- 规则安全门：未成年、自伤、越权改身份、违法协助；生成后再审出口（自称真人 / 教违法）
 - 模型超时与重试、主模型失败后备用供应商、再失败则角色口吻降级
-- JSON 日志、`x-request-id`、CORS
-- `/healthz` `/readyz` `/metrics`（turn 的 P50 / P95）
+- JSON 日志（带 request_id）、`x-request-id`、CORS
+- `/healthz` `/readyz`（未就绪 503）`/metrics`（turn 的 P50 / P95）
 - 固定评测集：人设、拒绝、重复率（`src/app/eval/datasets/`，硬规则打分）
+- Alembic 迁移：`make migrate`；CI 跑 pyrefly + pytest
 
 ## 下一步
 
-1. **P0**：Postgres + Alembic、WebSocket / 打断
-2. **P1**：用户画像、事件记忆、关系状态机；记忆可纠正、可删除、可隔离
-3. **P1**：主动消息（触发、频控、TTL）
-4. **P2**：把评测集接到真实模型跑分，补记忆准确性
-5. **旁路**：ASR / TTS / RTC、Avatar
+1. **P1**：用户画像、事件记忆、关系状态机；记忆可纠正、可删除、可隔离
+2. **P1**：主动消息（触发、频控、TTL）
+3. **P2**：把评测集接到真实模型跑分，补记忆准确性
+4. **旁路**：ASR / TTS / RTC、Avatar
 
 ## 本地运行
 
@@ -81,12 +84,15 @@ uvicorn app.index:app --reload --host 0.0.0.0 --port 8000
 curl -s http://127.0.0.1:8000/readyz
 curl -s http://127.0.0.1:8000/v1/conversations \
   -H 'content-type: application/json' \
-  -d '{"user_id":"u_1","character_id":"zhou_de_gui"}'
+  -H 'X-User-Id: u_1' \
+  -d '{"character_id":"zhou_de_gui","adult_confirmed":true}'
 curl -s http://127.0.0.1:8000/v1/conversations/<conversation_id>/turns \
   -H 'content-type: application/json' \
+  -H 'X-User-Id: u_1' \
   -d '{"text":"地里活干不完，腰又酸"}'
 curl -N http://127.0.0.1:8000/v1/conversations/<conversation_id>/turns/stream \
   -H 'content-type: application/json' \
+  -H 'X-User-Id: u_1' \
   -d '{"text":"还是停不下来"}'
 ```
 
@@ -103,6 +109,7 @@ python -m app.eval --sync
 ```bash
 pip install -e ".[postgres]"
 # DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/companion
+alembic upgrade head
 ```
 
 ```bash

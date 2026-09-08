@@ -1,17 +1,20 @@
-"""HTTP 会话接口。"""
+"""HTTP 会话接口。身份来自 X-User-Id，不信任路径里的陌生人。"""
 
 import json
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.pages.schemas import (
     ConversationOut,
+    ConversationSummaryOut,
     CreateConversationBody,
     CreateTurnBody,
+    DeletedOut,
     SafetyOut,
     TurnOut,
+    UserExportOut,
 )
 from app.character import CharacterNotFoundError
 from app.dialogue import (
@@ -29,37 +32,114 @@ def _service(request: Request) -> DialogueService:
     return request.app.state.dialogue
 
 
+def _user_id(x_user_id: str | None) -> str:
+    value = (x_user_id or "").strip()
+    if not value or len(value) > 64:
+        raise HTTPException(status_code=401, detail="缺少 X-User-Id")
+    return value
+
+
 def _sse(event: StreamEvent) -> str:
     return (
         f"event: {event.event}\ndata: {json.dumps(event.data, ensure_ascii=False)}\n\n"
     )
 
 
+def _conversation_out(request: Request, conversation) -> ConversationOut:
+    disclosure = _service(request).disclosure_for(conversation.character_id)
+    return ConversationOut.from_entity(conversation, disclosure=disclosure)
+
+
 @router.post("/conversations", response_model=ConversationOut)
 async def create_conversation(
-    body: CreateConversationBody, request: Request
+    body: CreateConversationBody,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
 ) -> ConversationOut:
     conversation = await _service(request).create_conversation(
-        body.user_id, body.character_id
+        _user_id(x_user_id),
+        body.character_id,
+        adult_confirmed=body.adult_confirmed,
     )
-    return ConversationOut.from_entity(conversation)
+    return _conversation_out(request, conversation)
+
+
+@router.get("/conversations", response_model=list[ConversationSummaryOut])
+async def list_conversations(
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+) -> list[ConversationSummaryOut]:
+    items = await _service(request).list_conversations(_user_id(x_user_id))
+    return [
+        ConversationSummaryOut(
+            conversation_id=item.id,
+            character_id=item.character_id,
+            created_at=item.created_at,
+            updated_at=item.updated_at,
+            message_count=item.message_count,
+        )
+        for item in items
+    ]
 
 
 @router.get("/conversations/{conversation_id}", response_model=ConversationOut)
-async def get_conversation(conversation_id: str, request: Request) -> ConversationOut:
-    conversation = await _service(request).get_conversation(conversation_id)
-    return ConversationOut.from_entity(conversation)
+async def get_conversation(
+    conversation_id: str,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+) -> ConversationOut:
+    conversation = await _service(request).get_conversation(
+        conversation_id, user_id=_user_id(x_user_id)
+    )
+    return _conversation_out(request, conversation)
+
+
+@router.delete("/conversations/{conversation_id}", status_code=204)
+async def delete_conversation(
+    conversation_id: str,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+) -> None:
+    await _service(request).delete_conversation(
+        conversation_id, user_id=_user_id(x_user_id)
+    )
+
+
+@router.get("/me/export", response_model=UserExportOut)
+async def export_me(
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+) -> UserExportOut:
+    user_id = _user_id(x_user_id)
+    conversations = await _service(request).export_user(user_id)
+    return UserExportOut(
+        user_id=user_id,
+        conversations=[_conversation_out(request, item) for item in conversations],
+    )
+
+
+@router.delete("/me", response_model=DeletedOut)
+async def delete_me(
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+) -> DeletedOut:
+    deleted = await _service(request).delete_user_data(_user_id(x_user_id))
+    return DeletedOut(deleted=deleted)
 
 
 @router.post("/conversations/{conversation_id}/turns", response_model=TurnOut)
 async def create_turn(
-    conversation_id: str, body: CreateTurnBody, request: Request
+    conversation_id: str,
+    body: CreateTurnBody,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
 ) -> TurnOut:
     try:
         result = await _service(request).turn(
             conversation_id,
             body.text,
             request_id=getattr(request.state, "request_id", ""),
+            user_id=_user_id(x_user_id),
         )
     except (ConversationNotFoundError, CharacterNotFoundError, LLMConfigurationError):
         raise
@@ -79,11 +159,15 @@ async def create_turn(
 
 @router.post("/conversations/{conversation_id}/turns/stream")
 async def stream_turn(
-    conversation_id: str, body: CreateTurnBody, request: Request
+    conversation_id: str,
+    body: CreateTurnBody,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
 ) -> StreamingResponse:
     service = _service(request)
+    user_id = _user_id(x_user_id)
     await service.get_conversation(
-        conversation_id
+        conversation_id, user_id=user_id
     )  # 先 404，避免 SSE 里才发现会话不存在
 
     async def events():
@@ -92,6 +176,7 @@ async def stream_turn(
                 conversation_id,
                 body.text,
                 request_id=getattr(request.state, "request_id", ""),
+                user_id=user_id,
             ):
                 yield _sse(item)
         except Exception:

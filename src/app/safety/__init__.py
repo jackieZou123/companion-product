@@ -30,6 +30,11 @@ _ROLE_BREAK = re.compile(
 _CRIMINAL = re.compile(
     r"(怎么(制作|做|合成)(炸弹|炸药|毒品)|帮我(杀人|下毒))",
 )
+# 只审模型出口：自称真人、教违法、教自伤方法
+_OUTPUT_HUMAN = re.compile(
+    r"(?:我|俺|老头我)(?:其实|真的)?是(?:一个)?(?:真人|人类)|(?:我|俺|老头我).{0,8}(?:上门|去你家)"
+)
+_OUTPUT_HARM = re.compile(r"(怎么自杀|自杀方法|割腕的方法)")
 
 
 class SafetyPolicy:
@@ -45,4 +50,15 @@ class SafetyPolicy:
             return SafetyDecision("refuse", "criminal", "disallowed_assistance")
         if _ROLE_BREAK.search(stripped):
             return SafetyDecision("refuse", "role_break", "identity_override")
+        return SafetyDecision("allow", "ok", "pass")
+
+    def evaluate_output(self, text: str) -> SafetyDecision:
+        """生成后再拦一层。流式已吐出的 token 以落库文本为准。"""
+        stripped = text.strip()
+        if _OUTPUT_HUMAN.search(stripped):
+            return SafetyDecision("refuse", "output_blocked", "identity_claim")
+        if _CRIMINAL.search(stripped):
+            return SafetyDecision("refuse", "output_blocked", "disallowed_assistance")
+        if _OUTPUT_HARM.search(stripped):
+            return SafetyDecision("refuse", "output_blocked", "crisis_language")
         return SafetyDecision("allow", "ok", "pass")

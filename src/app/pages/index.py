@@ -1,7 +1,9 @@
 """进程探活与就绪。"""
 
+from typing import Any
+
 from fastapi import APIRouter, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.config import Settings
 from app.dialogue import DialogueService
@@ -21,27 +23,33 @@ def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.get("/readyz")
-async def readyz(request: Request) -> dict[str, str]:
+@router.get("/readyz", response_model=None)
+async def readyz(request: Request) -> JSONResponse:
     settings: Settings = request.app.state.settings
     provider = settings.llm_provider.strip().lower()
+    payload: dict[str, Any]
     if provider == "openai" and not settings.openai_api_key.strip():
-        return {"status": "not_ready", "reason": "openai_api_key_missing"}
-    if provider == "deepseek" and not settings.deepseek_api_key.strip():
-        return {"status": "not_ready", "reason": "deepseek_api_key_missing"}
-    service: DialogueService | None = getattr(request.app.state, "dialogue", None)
-    if service is None:
-        return {"status": "not_ready", "reason": "runtime_not_started"}
-    try:
-        await service.ping()
-    except Exception:
-        return {"status": "not_ready", "reason": "database"}
-    return {
-        "status": "ready",
-        "provider": provider,
-        "model": settings.llm_model,
-        "tracing": "on" if settings.langsmith_tracing else "off",
-    }
+        payload = {"status": "not_ready", "reason": "openai_api_key_missing"}
+    elif provider == "deepseek" and not settings.deepseek_api_key.strip():
+        payload = {"status": "not_ready", "reason": "deepseek_api_key_missing"}
+    else:
+        service: DialogueService | None = getattr(request.app.state, "dialogue", None)
+        if service is None:
+            payload = {"status": "not_ready", "reason": "runtime_not_started"}
+        else:
+            try:
+                await service.ping()
+                payload = {
+                    "status": "ready",
+                    "provider": provider,
+                    "model": settings.llm_model,
+                    "tracing": "on" if settings.langsmith_tracing else "off",
+                }
+            except Exception:
+                payload = {"status": "not_ready", "reason": "database"}
+    if payload["status"] != "ready":
+        return JSONResponse(status_code=503, content=payload)
+    return JSONResponse(status_code=200, content=payload)
 
 
 @router.get("/metrics")

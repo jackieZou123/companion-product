@@ -11,8 +11,8 @@ description: Adds or edits a companion character profile JSON and keeps system p
 
 1. 复制 `src/app/character/profiles/zhou_de_gui.json` 为新文件，`id` 与文件名一致（snake_case）。
 2. 填齐：`identity` / `values` / `speech_style` / `relationship_stance` / `boundaries` / `never_do` / `refusals` / `degraded`。
-3. `refusals` 的 key 必须覆盖 `SafetyPolicy` 全部 refuse code，外加 `default`。`degraded` 是模型全失败时的角色口吻，不要写成系统错误或客服公告。
-4. 有呼唤口吻时配 `reactions.wake` / `reactions.low_mood`（triggers + replies），由 `ReactPolicy` 抽句，不要写进 identity。
+3. `refusals` 的 key 必须覆盖 `SafetyPolicy` 全部 refuse code，外加 `default`。`degraded` 是模型全失败时的角色口吻，不要写成系统错误或客服公告。面向用户的 AI 披露放 `disclosure`。
+4. 有呼唤口吻时配 `reactions`：`wake` 是喊名；其余是情绪池（`low_mood` / `happy` / `angry` 等，triggers + replies）。由 `ReactPolicy` 抽句，不要写进 identity。新池只要 JSON 加一段，代码会按最长触发词选用。
 5. 必须写明：这是 AI、禁止声称人类、禁止线下见面。
 6. 说话方式写可执行约束（短句、不复读、不清单安慰、不懂科技不装懂），不要写「要有趣」。
 7. `CharacterRepository` 会加载目录下全部 JSON；默认角色仍是 `zhou_de_gui`，除非改 `default_id()`。

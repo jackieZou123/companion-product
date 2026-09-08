@@ -24,6 +24,13 @@ def test_readyz_reports_provider():
         assert body["model"] == "gpt-5.4-mini"
 
 
+def test_readyz_not_ready_is_503():
+    with api_client(openai_api_key="") as client:
+        response = client.get("/readyz")
+        assert response.status_code == 503
+        assert response.json()["status"] == "not_ready"
+
+
 def test_metrics_start_empty():
     with api_client() as client:
         response = client.get("/metrics")

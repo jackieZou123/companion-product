@@ -58,7 +58,11 @@ async def run_case(runtime: EvalRuntime, case: EvalCase) -> CaseResult:
         raise ValueError(f"未知 runner: {case.runner}")
 
     service = runtime.service
-    conversation = await service.create_conversation(user_id=f"eval:{case.id}", character_id=case.character_id)
+    conversation = await service.create_conversation(
+        user_id=f"eval:{case.id}",
+        character_id=case.character_id,
+        adult_confirmed=True,
+    )
     for user_text, assistant_text in _history_pairs(case):
         await runtime.store.append(conversation.id, user_text, assistant_text)
     before = int(getattr(runtime.model, "calls", 0))

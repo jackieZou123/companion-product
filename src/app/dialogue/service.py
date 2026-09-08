@@ -77,19 +77,47 @@ class DialogueService:
         return self._latency.snapshot()
 
     async def create_conversation(
-        self, user_id: str, character_id: str | None
+        self,
+        user_id: str,
+        character_id: str | None,
+        *,
+        adult_confirmed: bool,
     ) -> Conversation:
         resolved = character_id or self._characters.default_id()
         self._characters.get(resolved)
-        return await self._store.create(user_id=user_id, character_id=resolved)
+        return await self._store.create(
+            user_id=user_id, character_id=resolved, adult_confirmed=adult_confirmed
+        )
 
-    async def get_conversation(self, conversation_id: str) -> Conversation:
-        return await self._store.get(conversation_id)
+    async def get_conversation(
+        self, conversation_id: str, *, user_id: str | None = None
+    ) -> Conversation:
+        return await self._store.get(conversation_id, user_id=user_id)
+
+    async def list_conversations(self, user_id: str) -> list[Conversation]:
+        return await self._store.list_for_user(user_id)
+
+    async def export_user(self, user_id: str) -> list[Conversation]:
+        return await self._store.export_for_user(user_id)
+
+    async def delete_conversation(self, conversation_id: str, *, user_id: str) -> None:
+        await self._store.delete(conversation_id, user_id=user_id)
+
+    async def delete_user_data(self, user_id: str) -> int:
+        return await self._store.delete_all_for_user(user_id)
+
+    def disclosure_for(self, character_id: str) -> str:
+        return self._characters.get(character_id).disclosure
 
     async def turn(
-        self, conversation_id: str, user_text: str, *, request_id: str = ""
+        self,
+        conversation_id: str,
+        user_text: str,
+        *,
+        request_id: str = "",
+        user_id: str | None = None,
     ) -> TurnResult:
-        conversation = await self._store.get(conversation_id)
+        conversation = await self._store.get(conversation_id, user_id=user_id)
         started = time.perf_counter()
         text = user_text.strip()
         config = turn_run_config(
@@ -143,9 +171,10 @@ class DialogueService:
         user_text: str,
         *,
         request_id: str = "",
+        user_id: str | None = None,
     ) -> AsyncIterator[StreamEvent]:
         """SSE：safety → token* → done。拒绝也走 token，客户端协议一致。"""
-        conversation = await self._store.get(conversation_id)
+        conversation = await self._store.get(conversation_id, user_id=user_id)
         started = time.perf_counter()
         text = user_text.strip()
         config = turn_run_config(
@@ -174,6 +203,7 @@ class DialogueService:
             react_code = ""
             model_used = self._settings.llm_model
             degraded = False
+            used_model = False
             if not decision.allowed:
                 assistant_text = character.refusal_text(decision.code)
                 pieces.append(assistant_text)
@@ -191,6 +221,7 @@ class DialogueService:
                     pieces.append(reaction.text)
                     yield StreamEvent("token", {"text": reaction.text})
                 else:
+                    used_model = True
                     generation: Generation | None = None
                     async for item in self._iter_tokens(
                         conversation,
@@ -212,6 +243,15 @@ class DialogueService:
                         raise RuntimeError("模型返回空内容")
 
             assistant_text = "".join(pieces).strip()
+            if used_model:
+                reviewed = self._safety.evaluate_output(assistant_text)
+                if not reviewed.allowed:
+                    assistant_text = character.refusal_text("output_blocked")
+                    decision = reviewed
+                    yield StreamEvent(
+                        "review",
+                        {"action": reviewed.action, "code": reviewed.code},
+                    )
             await self._store.append(conversation.id, text, assistant_text)
             result = self._finish(
                 conversation.id,

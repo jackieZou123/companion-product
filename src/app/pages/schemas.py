@@ -1,17 +1,19 @@
 """请求/响应模型。"""
 
+from datetime import datetime
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.character import CharacterNotFoundError
-from app.dialogue import ConversationNotFoundError, LLMConfigurationError
+from app.dialogue import AdultNotConfirmedError, ConversationNotFoundError, LLMConfigurationError
 from app.dialogue.store import Conversation
 
 
 class CreateConversationBody(BaseModel):
-    user_id: str = Field(min_length=1, max_length=64)
     character_id: str | None = None
+    adult_confirmed: bool = False
 
 
 class MessageOut(BaseModel):
@@ -23,16 +25,42 @@ class ConversationOut(BaseModel):
     conversation_id: str
     user_id: str
     character_id: str
+    adult_confirmed: bool = True
+    ai_disclosure: str = ""
     messages: list[MessageOut] = []
 
     @classmethod
-    def from_entity(cls, conversation: Conversation) -> "ConversationOut":
+    def from_entity(
+        cls, conversation: Conversation, *, disclosure: str = ""
+    ) -> "ConversationOut":
         return cls(
             conversation_id=conversation.id,
             user_id=conversation.user_id,
             character_id=conversation.character_id,
-            messages=[MessageOut(role=item["role"], content=item["content"]) for item in conversation.messages],
+            adult_confirmed=conversation.adult_confirmed,
+            ai_disclosure=disclosure,
+            messages=[
+                MessageOut(role=item["role"], content=item["content"])
+                for item in conversation.messages
+            ],
         )
+
+
+class ConversationSummaryOut(BaseModel):
+    conversation_id: str
+    character_id: str
+    created_at: datetime
+    updated_at: datetime
+    message_count: int
+
+
+class UserExportOut(BaseModel):
+    user_id: str
+    conversations: list[ConversationOut]
+
+
+class DeletedOut(BaseModel):
+    deleted: int
 
 
 class CreateTurnBody(BaseModel):
@@ -58,6 +86,10 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ConversationNotFoundError)
     async def conversation_not_found(_: Request, __: ConversationNotFoundError):
         return JSONResponse(status_code=404, content={"detail": "会话不存在"})
+
+    @app.exception_handler(AdultNotConfirmedError)
+    async def adult_not_confirmed(_: Request, __: AdultNotConfirmedError):
+        return JSONResponse(status_code=403, content={"detail": "需要确认已成年"})
 
     @app.exception_handler(CharacterNotFoundError)
     async def character_not_found(_: Request, __: CharacterNotFoundError):

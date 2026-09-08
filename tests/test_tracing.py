@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from tests.helpers import FakeModel, api_client, test_settings as settings_for_test
+from tests.helpers import FakeModel, api_client, start_conversation, test_settings as settings_for_test
 
 from app.observability.tracing import configure_tracing, turn_run_config
 
@@ -44,9 +44,9 @@ def test_turn_run_config_carries_session_ids():
 def test_turn_passes_trace_config_to_model():
     model = FakeModel("先歇一下。")
     with api_client(model) as client:
-        conversation_id = client.post(
-            "/v1/conversations", json={"user_id": "u_trace", "character_id": "zhou_de_gui"}
-        ).json()["conversation_id"]
+        conversation_id = start_conversation(client, character_id="zhou_de_gui").json()[
+            "conversation_id"
+        ]
         turned = client.post(
             f"/v1/conversations/{conversation_id}/turns",
             json={"text": "地里活干不完，腰又酸"},
