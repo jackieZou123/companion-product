@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "companion"
+version = "0.1.0"
+description = "我依旧陪在你身边：面向成年用户的中文 AI 陪伴对话内核"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic-settings>=2.6.0",
+    "langchain>=1.0.0",
+    "langchain-openai>=0.3.0",
+    "langgraph>=0.3.0",
+    "langsmith>=0.3.0",
+    "python-dotenv>=1.0.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "aiosqlite>=0.20.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+    "pyrefly>=0.1.0",
+]
+
+postgres = [
+    "asyncpg>=0.30.0",
+]
+
+[project.scripts]
+companion = "app.index:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+app = ["character/profiles/*.json", "eval/datasets/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "-q"
+
+[tool.pyright]
+include = ["src", "tests"]
+extraPaths = ["src", "."]
+venvPath = "."
+venv = ".venv"
+
+[tool.basedpyright]
+include = ["src", "tests"]
+extraPaths = ["src", "."]
+venvPath = "."
+venv = ".venv"

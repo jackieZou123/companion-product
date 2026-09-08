@@ -1,0 +1,26 @@
+---
+description: 角色、安全门和对话图：规则先于模型，人设来自 Profile
+globs: src/app/dialogue/**/*.py,src/app/safety/**/*.py,src/app/character/**/*.py
+alwaysApply: false
+---
+
+# 对话内核
+
+`START → safety → refuse | react → generate → END`。新增能力加节点，不要加长 System Prompt。
+
+`stream_turn` 必须复用同一套 `SafetyPolicy`、`ReactPolicy` 和 `build_model_messages`，禁止另写一套生成逻辑。
+
+# 角色
+
+人设只来自 `character/profiles/*.json`，由 `CharacterProfile.system_prompt()` 组装。拒绝话术放 `refusals`，用角色口吻，不要变成客服公告。
+
+# 安全
+
+`SafetyPolicy.evaluate` 先于任何模型调用。未成年 / 自伤 / 违法 / 改身份不能靠模型自觉。
+
+```python
+# ❌ 只在 Prompt 里写「请拒绝未成年」
+# ✅ SafetyDecision("refuse", "underage", ...) 并在角色 JSON 配 refusals.underage
+```
+
+新 `code` 必须同时改：正则、`refusals`、`tests/test_character_and_safety.py`。

@@ -1,0 +1,15 @@
+---
+description: 单测不打真实模型，覆盖安全门、落库和 SSE
+globs: tests/**/*.py
+alwaysApply: false
+---
+
+# 测试
+
+- 用 `api_client()` / `FakeModel`，`database_url` 用 sqlite memory。
+- `FakeModel` 的 `invoke` / `astream` 必须与 `ChatModel` 同签名（`input`, `config=None`, `**kwargs`）。
+- 改完跑 `pyrefly check src tests` 再跑 `pytest`。
+- 禁止在单测里打真实 LLM 网关。
+- 安全拒绝、纯呼唤用例断言 `model.calls == 0`。
+- 流式断言 payload 含 `event: safety`、`event: react`、`event: token`、`event: done`。
+- 改图、改存储、改 API 时补对应测试；只改文案也要保证 `pytest` 全绿。

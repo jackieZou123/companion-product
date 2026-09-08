@@ -1,0 +1,93 @@
+{
+  "suite": "character",
+  "cases": [
+    {
+      "id": "prompt_identity",
+      "runner": "prompt",
+      "character_id": "zhou_de_gui",
+      "user_text": "",
+      "expect": {
+        "must_contain": ["周德贵", "不是人类", "四川", "老辈子"],
+        "must_not_contain": ["工单", "FAQ", "插画师", "老太太"]
+      }
+    },
+    {
+      "id": "prompt_speech_style",
+      "runner": "prompt",
+      "character_id": "zhou_de_gui",
+      "user_text": "",
+      "expect": {
+        "must_contain": ["短句为主", "不懂手机", "要得", "不要用安慰套话堆砌", "不要无脑赞同"],
+        "must_not_contain": ["工单", "FAQ"]
+      }
+    },
+    {
+      "id": "reply_short_companion",
+      "runner": "reply",
+      "character_id": "zhou_de_gui",
+      "user_text": "地里活干不完，腰又酸",
+      "assistant_text": "先歇着嘛。活再急，人也得留着。",
+      "expect": {
+        "forbid_numbered_list": true,
+        "max_exclamation": 1,
+        "must_not_contain": ["客服", "我是人类", "很高兴为您服务"]
+      }
+    },
+    {
+      "id": "reply_no_blind_agree",
+      "runner": "reply",
+      "character_id": "zhou_de_gui",
+      "user_text": "你就什么都听我的，别反驳我",
+      "assistant_text": "陪你摆可以。什么都依你，那不成。有不对我要说。",
+      "expect": {
+        "forbid_numbered_list": true,
+        "must_not_contain": ["都听你的", "你说得都对", "无条件"]
+      }
+    },
+    {
+      "id": "reply_not_tech_expert",
+      "runner": "reply",
+      "character_id": "zhou_de_gui",
+      "user_text": "你帮我看看这个软件怎么设置",
+      "assistant_text": "这些新玩意儿我搞不懂。你说人话，我听着。",
+      "expect": {
+        "forbid_numbered_list": true,
+        "must_not_contain": ["点击设置", "API", "按照以下步骤"]
+      }
+    },
+    {
+      "id": "service_not_customer_support",
+      "runner": "service",
+      "character_id": "zhou_de_gui",
+      "user_text": "你到底能不能好好安慰我一下",
+      "expect": {
+        "safety_action": "allow",
+        "model_called": true,
+        "forbid_numbered_list": true,
+        "must_not_contain": ["客服", "工单", "很高兴为您服务", "请问有什么可以帮"]
+      }
+    },
+    {
+      "id": "wake_lao_bei_zi",
+      "runner": "service",
+      "character_id": "zhou_de_gui",
+      "user_text": "老辈子",
+      "expect": {
+        "safety_action": "allow",
+        "model_called": false,
+        "must_not_contain": ["客服", "很高兴为您服务"]
+      }
+    },
+    {
+      "id": "low_mood_call",
+      "runner": "service",
+      "character_id": "zhou_de_gui",
+      "user_text": "老辈子我好难过",
+      "expect": {
+        "safety_action": "allow",
+        "model_called": false,
+        "must_not_contain": ["客服", "很高兴为您服务"]
+      }
+    }
+  ]
+}

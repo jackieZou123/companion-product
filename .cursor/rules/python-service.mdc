@@ -1,0 +1,24 @@
+---
+description: FastAPI / SQLAlchemy / 供应商适配层的实现约定
+globs: src/app/**/*.py
+alwaysApply: false
+---
+
+# 服务实现
+
+- 路由放 `src/app/pages/`，入口是 `src/app/index.py`。不要把包名写成产品拼音。
+- 新配置进 `Settings` + `.env.example`，不要在代码里读裸 `os.getenv`（适配层和 tracing 除外）。
+- 换模型只改 `ChatModelFactory` 和环境变量。
+
+```python
+# ❌
+ChatOpenAI(api_key="sk-...", base_url="https://hardcoded")
+
+# ✅
+ChatModelFactory(settings).chat_model()
+```
+
+- 会话消息全量落库；送进模型的窗口用 `short_term_turn_limit` 截断。
+- 模型失败：先备用供应商，再角色口吻降级；半句流式中断才 503。日志打 `logger.exception`，不要把堆栈和 Key 回给客户端。
+- 流式走 SSE：`safety` → `token`* → `done`；半句失败再发 `error`。
+- 注释用中文、短句：模块一行 docstring，非显而易见的取舍加 `#`。不要写复述代码的注释。

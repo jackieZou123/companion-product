@@ -1,0 +1,68 @@
+"""从 profiles/*.json 加载角色。"""
+
+import json
+from pathlib import Path
+
+from app.character.models import CharacterProfile, ReactionBank
+
+_PROFILES_DIR = Path(__file__).resolve().parent / "profiles"
+
+
+class CharacterNotFoundError(KeyError):
+    pass
+
+
+class CharacterRepository:
+    def __init__(self, profiles_dir: Path | None = None) -> None:
+        directory = profiles_dir or _PROFILES_DIR
+        self._profiles = {
+            profile.id: profile
+            for profile in (
+                _load_profile(path) for path in sorted(directory.glob("*.json"))
+            )
+        }
+        if not self._profiles:
+            raise RuntimeError(f"未找到角色配置：{directory}")
+
+    def get(self, character_id: str) -> CharacterProfile:
+        try:
+            return self._profiles[character_id]
+        except KeyError as exc:
+            raise CharacterNotFoundError(character_id) from exc
+
+    def default_id(self) -> str:
+        # 项目默认陪伴是周德贵；目录里没有时再退到任意已加载角色
+        return (
+            "zhou_de_gui"
+            if "zhou_de_gui" in self._profiles
+            else next(iter(self._profiles))
+        )
+
+
+def _load_profile(path: Path) -> CharacterProfile:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return CharacterProfile(
+        id=data["id"],
+        name=data["name"],
+        age=data["age"],
+        occupation=data["occupation"],
+        identity=data["identity"],
+        values=data["values"],
+        speech_style=data["speech_style"],
+        relationship_stance=data["relationship_stance"],
+        boundaries=data["boundaries"],
+        never_do=data["never_do"],
+        refusals=data["refusals"],
+        degraded=str(data.get("degraded") or ""),
+        wake=_bank((data.get("reactions") or {}).get("wake")),
+        low_mood=_bank((data.get("reactions") or {}).get("low_mood")),
+    )
+
+
+def _bank(raw: object) -> ReactionBank:
+    if not isinstance(raw, dict):
+        return ReactionBank()
+    return ReactionBank(
+        triggers=tuple(raw.get("triggers") or ()),
+        replies=tuple(raw.get("replies") or ()),
+    )
