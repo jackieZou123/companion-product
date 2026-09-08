@@ -1,0 +1,41 @@
+---
+description: 优先选用成熟、仍在维护的第三方库，避免重复造轮子
+alwaysApply: true
+---
+
+# 优先使用成熟第三方库
+
+能由成熟库承担的，不要从零手写。选型偏向社区主流、近期仍维护、文档完善。
+
+## 原则
+
+1. **先查现有栈**：`pyproject.toml` 与 `.cursor/rules` 已约定的库优先复用
+2. **再搜成熟方案**：HTTP、ORM、测试、LLM 编排优先选大众库
+3. **最后才自研**：仅当无合适库、或与对话图/安全门强耦合时，才在项目内实现
+
+## 本仓库已选型（优先复用）
+
+| 场景 | 库 |
+|------|-----|
+| HTTP / SSE | FastAPI、Starlette |
+| 模型与消息 | LangChain |
+| 对话编排 | LangGraph |
+| 追踪与评测 | LangSmith |
+| 配置 | pydantic-settings |
+| ORM | SQLAlchemy（async） |
+| 测试 | pytest、httpx |
+| 类型检查 | pyrefly |
+
+不要平行再引入同类库（例如已有 SQLAlchemy 不要再加另一套 ORM）。
+
+## 适合自研
+
+- 安全门正则与 refuse code（必须先于模型，不能交给模型自觉）
+- 角色 Profile 组装、呼唤池
+- 与本图强耦合的 `DialogueState`
+
+## 禁止
+
+- 手写已有成熟库覆盖的能力
+- 为「少一个依赖」复制粘贴大段第三方源码
+- 引入长期无更新、无替代理由的库

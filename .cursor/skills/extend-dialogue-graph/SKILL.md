@@ -23,6 +23,6 @@ description: Adds or changes LangGraph dialogue nodes (safety, generate, refuse,
 
 ## 反例
 
-- 在 `zhou_de_gui.json` 的 identity 里写完整记忆协议
+- 在 `mei_li_kou.json` 的 identity 里写完整记忆协议
 - 为 SSE 复制一套 system prompt
 - 跳过 safety 直接 `model.astream`

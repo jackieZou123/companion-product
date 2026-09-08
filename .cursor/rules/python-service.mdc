@@ -22,3 +22,4 @@ ChatModelFactory(settings).chat_model()
 - 模型失败：先备用供应商，再角色口吻降级；半句流式中断才 503。日志打 `logger.exception`，不要把堆栈和 Key 回给客户端。
 - 流式走 SSE：`safety` → `token`* → `done`；半句失败再发 `error`。
 - 注释用中文、短句：模块一行 docstring，非显而易见的取舍加 `#`。不要写复述代码的注释。
+- 生成后必须消掉语法和类型报红：`pyrefly check src tests` + 改过文件的 ReadLints。请注意代码生成的时候的语法问题，别每次都这样。

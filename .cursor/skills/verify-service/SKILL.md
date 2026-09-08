@@ -13,7 +13,7 @@ pyrefly check src tests
 pytest
 ```
 
-类型检查和测试都要过才能说做完。`FakeModel` 必须满足 `ChatModel` 的 `invoke` / `astream` 签名，不能写成单参数 `messages`。
+类型检查和测试都要过才能说做完。改过的文件再用 ReadLints 看编辑器报红；有 ERROR 就修。`FakeModel` 必须满足 `ChatModel` 的 `invoke` / `astream` 签名，不能写成单参数 `messages`。
 
 ## 按改动补打
 
@@ -38,3 +38,4 @@ curl -s http://127.0.0.1:8000/readyz
 - 只贴一段模型回复当验收
 - 单测里打付费网关
 - 把 `.env` 里的 Key 写进聊天或 git
+- CLI 绿了但编辑器还报红就收工
