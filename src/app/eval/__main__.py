@@ -52,7 +52,7 @@ async def _run_local() -> int:
         langsmith_tracing=False,
         database_url="sqlite+aiosqlite:///:memory:",
     )
-    runtime = await make_runtime(settings, _StubModel("先歇着嘛。活再急，人也得留着。"))
+    runtime = await make_runtime(settings, _StubModel("先别抓。干燥发紧多半是屏障在叫。"))
     failed = 0
     try:
         for case in load_cases():

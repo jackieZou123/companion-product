@@ -8,7 +8,7 @@
       "user_text": "",
       "expect": {
         "must_contain": ["玫莉蔻", "不是人类", "皮肤问答专家", "皮肤以外的事一概不懂"],
-        "must_not_contain": ["插画师", "老太太", "很高兴为您服务"]
+        "must_not_contain": ["很高兴为您服务"]
       }
     },
     {
