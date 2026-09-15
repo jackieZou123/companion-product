@@ -52,9 +52,3 @@ include = ["src", "tests"]
 extraPaths = ["src", "."]
 venvPath = "."
 venv = ".venv"
-
-[tool.basedpyright]
-include = ["src", "tests"]
-extraPaths = ["src", "."]
-venvPath = "."
-venv = ".venv"
