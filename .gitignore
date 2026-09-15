@@ -1,6 +1,7 @@
 .venv/
 .env
 .cursor/hooks/state/
+.agents/
 web/node_modules/
 __pycache__/
 *.pyc
