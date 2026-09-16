@@ -8,6 +8,7 @@ from app.db.models import (
     MemoryProfileRow,
     MemoryRelationshipRow,
     MessageRow,
+    NudgeRow,
 )
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "MemoryProfileRow",
     "MemoryRelationshipRow",
     "MessageRow",
+    "NudgeRow",
     "create_engine",
     "create_schema",
     "create_session_factory",
