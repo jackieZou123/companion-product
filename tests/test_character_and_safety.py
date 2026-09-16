@@ -41,6 +41,8 @@ def test_canned_copy_is_not_customer_service():
     lines = [*profile.refusals.values(), profile.degraded_text(), profile.disclosure]
     for bank in profile.reactions:
         lines.extend(bank.replies)
+    for bank in profile.nudges:
+        lines.extend(bank.replies)
     for line in lines:
         assert _SERVICE_TONE.search(line) is None, line
 

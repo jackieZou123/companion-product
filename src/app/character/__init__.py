@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from app.character.models import CharacterProfile, ReactionBank
+from app.character.models import CharacterProfile, NudgeBank, ReactionBank
 
 _PROFILES_DIR = Path(__file__).resolve().parent / "profiles"
 
@@ -56,6 +56,7 @@ def _load_profile(path: Path) -> CharacterProfile:
         degraded=str(data.get("degraded") or ""),
         disclosure=str(data.get("disclosure") or ""),
         reactions=_load_reactions(data.get("reactions") or {}),
+        nudges=_load_nudges(data.get("nudges") or {}),
     )
 
 
@@ -73,3 +74,16 @@ def _bank(code: str, raw: object) -> ReactionBank:
         triggers=tuple(raw.get("triggers") or ()),
         replies=tuple(raw.get("replies") or ()),
     )
+
+
+def _load_nudges(raw: object) -> tuple[NudgeBank, ...]:
+    if not isinstance(raw, dict):
+        return ()
+    banks: list[NudgeBank] = []
+    for code, item in raw.items():
+        if not isinstance(code, str) or not isinstance(item, dict):
+            continue
+        banks.append(
+            NudgeBank(code=code, replies=tuple(item.get("replies") or ()))
+        )
+    return tuple(banks)

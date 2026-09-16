@@ -18,6 +18,17 @@ class ReactionBank:
 
 
 @dataclass(frozen=True)
+class NudgeBank:
+    """一类主动消息。话术在角色 JSON，不写进人设正文。"""
+
+    code: str = ""
+    replies: tuple[str, ...] = ()
+
+    def enabled(self) -> bool:
+        return bool(self.replies)
+
+
+@dataclass(frozen=True)
 class CharacterProfile:
     id: str
     name: str
@@ -33,6 +44,7 @@ class CharacterProfile:
     degraded: str = ""
     disclosure: str = ""
     reactions: tuple[ReactionBank, ...] = ()
+    nudges: tuple[NudgeBank, ...] = ()
 
     @property
     def wake(self) -> ReactionBank:
@@ -47,6 +59,12 @@ class CharacterProfile:
             if item.code == code:
                 return item
         return ReactionBank(code=code)
+
+    def nudge(self, code: str) -> NudgeBank:
+        for item in self.nudges:
+            if item.code == code:
+                return item
+        return NudgeBank(code=code)
 
     def system_prompt(self, address: AddressName = "") -> str:
         """每次调用现拼，保证和 JSON 同步。address 是姐姐或哥哥。"""
