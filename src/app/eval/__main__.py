@@ -1,58 +1,48 @@
-"""python -m app.eval ：本地跑评测；--sync 推到 LangSmith。"""
+"""python -m app.eval ：本地跑评测；--live 打真模型；--sync 推到 LangSmith。"""
 
-from collections.abc import AsyncIterator
 import argparse
 import asyncio
 import sys
-from typing import Any
 
 from app.config import Settings, get_settings
 from app.eval.cases import DATASET_NAME, load_cases
-from app.eval.runner import make_runtime, run_case
+from app.eval.runner import eval_model, eval_settings, make_runtime, run_case
 from app.eval.sync import sync_dataset
-
-
-class _StubChunk:
-    def __init__(self, content: str) -> None:
-        self.content = content
-
-
-class _StubModel:
-    """CLI 默认替身。单测请用 tests.helpers.FakeModel。"""
-
-    def __init__(self, text: str) -> None:
-        self.text = text
-        self.calls = 0
-
-    def invoke(self, input: Any, config: Any = None, **kwargs: Any) -> _StubChunk:
-        self.calls += 1
-        return _StubChunk(self.text)
-
-    async def astream(self, input: Any, config: Any = None, **kwargs: Any) -> AsyncIterator[_StubChunk]:
-        self.calls += 1
-        yield _StubChunk(self.text)
+from app.llm import ChatModel, LLMConfigurationError
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="玫莉蔻 陪伴质量评测")
     parser.add_argument("--sync", action="store_true", help="把样本同步到 LangSmith，不跑模型")
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="用 .env 里的真实模型跑 service 样本；默认仍是 Stub",
+    )
     args = parser.parse_args(argv)
+    if args.sync and args.live:
+        print("--sync 只上传样本，不要和 --live 一起用", file=sys.stderr)
+        return 2
     if args.sync:
         name = sync_dataset(get_settings())
         print(f"synced {name}")
         return 0
-    return asyncio.run(_run_local())
+    try:
+        settings = eval_settings(live=args.live)
+        model = eval_model(settings, live=args.live)
+    except LLMConfigurationError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    if args.live:
+        print(
+            f"live\t{settings.llm_provider}\t{settings.llm_model}",
+            file=sys.stderr,
+        )
+    return asyncio.run(_run_local(settings, model))
 
 
-async def _run_local() -> int:
-    settings = Settings(
-        _env_file=None,
-        app_env="test",
-        openai_api_key="eval-local",
-        langsmith_tracing=False,
-        database_url="sqlite+aiosqlite:///:memory:",
-    )
-    runtime = await make_runtime(settings, _StubModel("先别抓。干燥发紧多半是屏障在叫。"))
+async def _run_local(settings: Settings, model: ChatModel) -> int:
+    runtime = await make_runtime(settings, model)
     failed = 0
     try:
         for case in load_cases():

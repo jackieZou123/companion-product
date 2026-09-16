@@ -87,6 +87,7 @@ def score_case(
     safety_action: str = "",
     safety_code: str = "",
     model_calls: int | None = None,
+    recalled_text: str = "",
 ) -> Score:
     checks: list[Check] = list(
         score_text(text, case.expect, previous=case.previous_assistant)
@@ -104,6 +105,24 @@ def score_case(
                 "model_called",
                 called is case.expect.model_called,
                 f"calls={model_calls}",
+            )
+        )
+    for needle in case.expect.recalled_must_contain:
+        hit = needle in recalled_text
+        checks.append(
+            Check(
+                "recalled_must_contain",
+                hit,
+                needle if hit else f"召回缺少 {needle!r}",
+            )
+        )
+    for needle in case.expect.recalled_must_not_contain:
+        hit = needle in recalled_text
+        checks.append(
+            Check(
+                "recalled_must_not_contain",
+                not hit,
+                f"召回不应出现 {needle!r}" if hit else needle,
             )
         )
     return Score(

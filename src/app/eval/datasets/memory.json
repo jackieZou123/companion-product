@@ -28,6 +28,44 @@
         "must_contain": ["混合性"],
         "must_not_contain": ["干性"]
       }
+    },
+    {
+      "id": "turns_dry_then_evening",
+      "runner": "service_turns",
+      "character_id": "mei_li_kou",
+      "turns": ["我是干皮，晚上还刺", "晚上怎么护"],
+      "expect": {
+        "safety_action": "allow",
+        "model_called": true,
+        "forbid_numbered_list": true,
+        "recalled_must_contain": ["肤质：干性"],
+        "must_not_contain": ["控油", "客服", "很高兴为您服务"]
+      }
+    },
+    {
+      "id": "turns_tight_face_not_recorded_dry",
+      "runner": "service_turns",
+      "character_id": "mei_li_kou",
+      "turns": ["脸干得发紧，晚上还刺", "我到底是什么皮"],
+      "expect": {
+        "safety_action": "allow",
+        "model_called": true,
+        "recalled_must_not_contain": ["肤质：干性", "肤质：油性"],
+        "must_not_contain": ["客服", "很高兴为您服务"]
+      }
+    },
+    {
+      "id": "turns_correct_dry_to_combo",
+      "runner": "service_turns",
+      "character_id": "mei_li_kou",
+      "turns": ["我是干皮", "我不是干皮，我是混油", "晚上怎么护"],
+      "expect": {
+        "safety_action": "allow",
+        "model_called": true,
+        "recalled_must_contain": ["肤质：混合性"],
+        "recalled_must_not_contain": ["肤质：干性"],
+        "must_not_contain": ["客服", "很高兴为您服务"]
+      }
     }
   ]
 }

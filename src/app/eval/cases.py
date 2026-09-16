@@ -7,7 +7,7 @@ import json
 
 DATASET_DIR = Path(__file__).resolve().parent / "datasets"
 DATASET_NAME = "companion-eval"
-DATASET_VERSION = "v1"
+DATASET_VERSION = "v2"
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,8 @@ class Expectation:
     forbid_numbered_list: bool = False
     max_exclamation: int | None = None
     max_similarity: float | None = None
+    recalled_must_contain: tuple[str, ...] = ()
+    recalled_must_not_contain: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,7 @@ class EvalCase:
     history: tuple[dict[str, str], ...] = ()
     assistant_text: str = ""
     previous_assistant: str = ""
+    turns: tuple[str, ...] = ()
     expect: Expectation = field(default_factory=Expectation)
 
     def to_example(self) -> dict[str, Any]:
@@ -44,6 +47,7 @@ class EvalCase:
                 "user_text": self.user_text,
                 "history": list(self.history),
                 "previous_assistant": self.previous_assistant,
+                "turns": list(self.turns),
             },
             "outputs": {
                 "assistant_text": self.assistant_text,
@@ -55,6 +59,8 @@ class EvalCase:
                 "forbid_numbered_list": self.expect.forbid_numbered_list,
                 "max_exclamation": self.expect.max_exclamation,
                 "max_similarity": self.expect.max_similarity,
+                "recalled_must_contain": list(self.expect.recalled_must_contain),
+                "recalled_must_not_contain": list(self.expect.recalled_must_not_contain),
             },
             "metadata": {"case_id": self.id, "suite": self.suite, "version": DATASET_VERSION},
         }
@@ -78,6 +84,7 @@ def load_cases(directory: Path | None = None) -> list[EvalCase]:
                     history=tuple(raw.get("history") or ()),
                     assistant_text=raw.get("assistant_text", ""),
                     previous_assistant=raw.get("previous_assistant", ""),
+                    turns=tuple(raw.get("turns") or ()),
                     expect=_expectation(expect_raw),
                 )
             )
@@ -94,4 +101,6 @@ def _expectation(raw: dict[str, Any]) -> Expectation:
         forbid_numbered_list=bool(raw.get("forbid_numbered_list", False)),
         max_exclamation=raw.get("max_exclamation"),
         max_similarity=raw.get("max_similarity"),
+        recalled_must_contain=tuple(raw.get("recalled_must_contain") or ()),
+        recalled_must_not_contain=tuple(raw.get("recalled_must_not_contain") or ()),
     )

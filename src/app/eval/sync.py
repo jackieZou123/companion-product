@@ -29,6 +29,6 @@ def _ensure_dataset(client: Client):
     except LangSmithNotFoundError:
         return client.create_dataset(
             dataset_name=DATASET_NAME,
-            description="玫莉蔻 陪伴质量评测：人设、拒绝、重复率。权威样本在仓库 JSON。",
+            description="玫莉蔻 陪伴质量评测：人设、拒绝、重复率、记忆。权威样本在仓库 JSON。",
             metadata={"version": DATASET_VERSION, "product": "companion"},
         )
