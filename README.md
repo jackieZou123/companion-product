@@ -30,7 +30,7 @@ src/app/
 客户端
   → FastAPI（REST + SSE）
       → DialogueService
-          → LangGraph：safety → refuse | react → generate → review
+          → LangGraph：safety → refuse | react → recall → generate → review → remember
           → SSE 流式生成（与图共用安全门、呼唤池、出口审核和角色 Prompt）
           → CharacterRepository
           → ChatModelFactory（超时、重试、供应商适配）
@@ -52,24 +52,25 @@ src/app/
 - `GET /v1/conversations` 当前用户的会话列表
 - `GET /v1/conversations/{id}` 含历史消息；别人的会话返回 404
 - `DELETE /v1/conversations/{id}` 删除一条会话
-- `GET /v1/me/export` / `DELETE /v1/me` 导出或清空该用户数据
+- `GET /v1/me/export` / `DELETE /v1/me` 导出或清空该用户数据（含记忆）
+- `GET /v1/me/memory` 画像、事件、关系阶段；`PATCH /v1/me/memory/profile` 纠正槽位；`DELETE /v1/me/memory/events/{id}` / `DELETE /v1/me/memory`
 - `POST /v1/conversations/{id}/turns` 完整一轮
 - `POST /v1/conversations/{id}/turns/stream` SSE：`safety` / `react` / `token` / `done`
 - 角色「玫莉蔻」：皮肤问答专家，陪人说皮肤的事，不接工单、不当医生；创建会话返回 AI 披露
 - 呼唤联动：喊「玫莉蔻」走回复池；带情绪则走对应池（伤心、开心、愤怒、感慨等）；纯呼唤不调模型
 - 规则安全门：未成年、自伤、越权改身份、违法协助；生成后再审出口（自称真人 / 教违法）
+- 长期记忆：按用户+角色隔离；规则抽取肤质/护理事实；生成前召回，出口后写入；可纠正、可删除
 - 模型超时与重试、主模型失败后备用供应商、再失败则角色口吻降级
 - JSON 日志（带 request_id）、`x-request-id`、CORS
 - `/healthz` `/readyz`（未就绪 503）`/metrics`（turn 的 P50 / P95）
-- 固定评测集：人设、拒绝、重复率（`src/app/eval/datasets/`，硬规则打分）
+- 固定评测集：人设、拒绝、重复率、记忆抽取（`src/app/eval/datasets/`，硬规则打分）
 - 陪伴对话页：React（Vite）。源码 `web/`，构建后由 FastAPI 在 `/` 托管；成年确认、AI 披露、SSE。接口文档仍在 `/docs`
 
 ## 下一步
 
-1. **P1**：用户画像、事件记忆、关系状态机；记忆可纠正、可删除、可隔离
-2. **P1**：主动消息（触发、频控、TTL）
-3. **P2**：把评测集接到真实模型跑分，补记忆准确性
-4. **旁路**：ASR / TTS / RTC、Avatar
+1. **P1**：主动消息（触发、频控、TTL）
+2. **P2**：把评测集接到真实模型跑分，补记忆准确性
+3. **旁路**：ASR / TTS / RTC、Avatar
 
 ## 本地运行
 

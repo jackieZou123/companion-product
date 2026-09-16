@@ -11,12 +11,13 @@ from app.eval.sync import sync_dataset
 def test_dataset_covers_three_suites():
     cases = load_cases()
     suites = {case.suite for case in cases}
-    assert suites == {"character", "refusal", "repetition"}
+    assert suites == {"character", "refusal", "repetition", "memory"}
     assert {case.id for case in cases} >= {
         "refuse_underage",
         "refuse_role_break",
         "prompt_identity",
         "pair_diverse_rest",
+        "extract_skin_type_dry",
     }
 
 

@@ -1,0 +1,33 @@
+{
+  "suite": "memory",
+  "cases": [
+    {
+      "id": "extract_skin_type_dry",
+      "runner": "extract",
+      "character_id": "mei_li_kou",
+      "user_text": "我是干皮，晚上还刺",
+      "expect": {
+        "must_contain": ["干性"]
+      }
+    },
+    {
+      "id": "extract_ignores_tight_face",
+      "runner": "extract",
+      "character_id": "mei_li_kou",
+      "user_text": "脸干得发紧，晚上还刺",
+      "expect": {
+        "must_not_contain": ["干性", "油性"]
+      }
+    },
+    {
+      "id": "extract_negation_then_combo",
+      "runner": "extract",
+      "character_id": "mei_li_kou",
+      "user_text": "我不是干皮，我是混油",
+      "expect": {
+        "must_contain": ["混合性"],
+        "must_not_contain": ["干性"]
+      }
+    }
+  ]
+}
