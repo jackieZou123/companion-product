@@ -18,6 +18,8 @@ from app.dialogue.service import LLMConfigurationError
 from app.dialogue.store import Conversation
 from app.memory.errors import InvalidMemoryProfileError, MemoryEventNotFoundError
 from app.memory.models import MemorySnapshot
+from app.nudge.errors import NudgeNotFoundError
+from app.nudge.models import Nudge
 
 
 class CreateConversationBody(BaseModel):
@@ -131,10 +133,31 @@ class PatchMemoryProfileBody(BaseModel):
     character_id: str | None = None
 
 
+class NudgeOut(BaseModel):
+    id: int
+    character_id: str
+    code: str
+    text: str
+    created_at: datetime
+    expires_at: datetime
+
+    @classmethod
+    def from_entity(cls, nudge: Nudge) -> "NudgeOut":
+        return cls(
+            id=nudge.id,
+            character_id=nudge.character_id,
+            code=nudge.code,
+            text=nudge.text,
+            created_at=nudge.created_at,
+            expires_at=nudge.expires_at,
+        )
+
+
 class UserExportOut(BaseModel):
     user_id: str
     conversations: list[ConversationOut]
     memory: list[MemoryOut] = []
+    nudges: list[NudgeOut] = []
 
 
 class CreateTurnBody(BaseModel):
@@ -184,3 +207,7 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(InvalidMemoryProfileError)
     async def invalid_memory_profile(_: Request, exc: InvalidMemoryProfileError):
         return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+    @app.exception_handler(NudgeNotFoundError)
+    async def nudge_not_found(_: Request, __: NudgeNotFoundError):
+        return JSONResponse(status_code=404, content={"detail": "主动消息不存在"})

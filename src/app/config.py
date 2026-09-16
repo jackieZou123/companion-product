@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     langsmith_api_key: str = ""
     langsmith_project: str = "companion"
 
+    nudge_idle_hours: float = Field(default=24.0, gt=0)
+    nudge_rate_hours: float = Field(default=24.0, gt=0)
+    nudge_ttl_hours: float = Field(default=48.0, gt=0)
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

@@ -121,6 +121,23 @@ class SqlConversationStore:
             for row in rows
         ]
 
+    async def latest_for_user(self, user_id: str, character_id: str) -> Conversation | None:
+        async with self._session_factory() as session:
+            row = (
+                await session.execute(
+                    select(ConversationRow)
+                    .where(
+                        ConversationRow.user_id == user_id,
+                        ConversationRow.character_id == character_id,
+                    )
+                    .order_by(ConversationRow.updated_at.desc())
+                    .limit(1)
+                )
+            ).scalar_one_or_none()
+        if row is None:
+            return None
+        return _to_conversation(row, [], message_count=0)
+
     async def export_for_user(self, user_id: str) -> list[Conversation]:
         async with self._session_factory() as session:
             rows = (

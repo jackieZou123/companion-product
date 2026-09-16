@@ -1,6 +1,8 @@
 """应用入口：组装 FastAPI、数据库和对话服务。"""
 
 from contextlib import asynccontextmanager
+from collections.abc import Callable
+from datetime import datetime
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -20,6 +22,7 @@ from app.dialogue import DialogueService
 from app.dialogue.store import SqlConversationStore
 from app.llm import ChatModel, ChatModelFactory
 from app.memory.store import SqlMemoryStore
+from app.nudge.store import SqlNudgeStore
 from app.observability import configure_logging, request_id_ctx
 from app.observability.metrics import LatencyWindow
 from app.observability.tracing import configure_tracing
@@ -51,6 +54,7 @@ def create_app(
     settings: Settings | None = None,
     llm_override: ChatModel | None = None,
     llm_fallback_override: ChatModel | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> FastAPI:
     resolved = settings or get_settings()
     configure_logging(resolved.log_level)
@@ -72,8 +76,10 @@ def create_app(
                 fallback_override=llm_fallback_override,
             ),
             memory=SqlMemoryStore(session_factory),
+            nudges=SqlNudgeStore(session_factory),
             safety=SafetyPolicy(),
             latency=LatencyWindow(),
+            clock=clock,
         )
         yield
         await engine.dispose()

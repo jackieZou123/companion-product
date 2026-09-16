@@ -1,7 +1,8 @@
 """测试替身。invoke/astream 签名必须与 ChatModel 一致。"""
 
-from collections.abc import AsyncIterator, Generator
+from collections.abc import AsyncIterator, Callable, Generator
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import FastAPI
@@ -9,6 +10,19 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.index import create_app
+
+
+class FrozenClock:
+    """测试把「现在」拨快，不真睡 24 小时。"""
+
+    def __init__(self, now: datetime | None = None) -> None:
+        self.now = now or datetime.now(timezone.utc)
+
+    def __call__(self) -> datetime:
+        return self.now
+
+    def advance(self, **kwargs: Any) -> None:
+        self.now = self.now + timedelta(**kwargs)
 
 
 class FakeChunk:
@@ -68,12 +82,14 @@ def start_conversation(client: TestClient, **payload: Any):
 def build_app(
     model: FakeModel | None = None,
     fallback_model: FakeModel | None = None,
+    clock: Callable[[], datetime] | None = None,
     **settings_overrides: Any,
 ) -> FastAPI:
     return create_app(
         settings=test_settings(**settings_overrides),
         llm_override=model or FakeModel(),
         llm_fallback_override=fallback_model,
+        clock=clock,
     )
 
 
@@ -83,8 +99,9 @@ def api_client(
     fallback_model: FakeModel | None = None,
     *,
     user_id: str = "u_1",
+    clock: Callable[[], datetime] | None = None,
     **settings_overrides: Any,
 ) -> Generator[TestClient, None, None]:
-    with TestClient(build_app(model, fallback_model, **settings_overrides)) as client:
+    with TestClient(build_app(model, fallback_model, clock, **settings_overrides)) as client:
         client.headers.update({"X-User-Id": user_id})
         yield client

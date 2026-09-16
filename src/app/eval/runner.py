@@ -15,6 +15,7 @@ from app.eval.scorers import Score, score_case
 from app.llm import ChatModel, ChatModelFactory
 from app.memory.extract import extract, render_facts
 from app.memory.store import SqlMemoryStore
+from app.nudge.store import SqlNudgeStore
 from app.observability.metrics import LatencyWindow
 from app.safety import SafetyPolicy
 
@@ -46,6 +47,7 @@ async def make_runtime(settings: Settings, model: ChatModel) -> EvalRuntime:
         characters=CharacterRepository(),
         llm_factory=ChatModelFactory(settings, override=model),
         memory=SqlMemoryStore(session_factory),
+        nudges=SqlNudgeStore(session_factory),
         safety=SafetyPolicy(),
         latency=LatencyWindow(),
     )

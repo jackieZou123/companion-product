@@ -13,6 +13,7 @@ from app.pages.schemas import (
     CreateTurnBody,
     DeletedOut,
     MemoryOut,
+    NudgeOut,
     PatchMemoryProfileBody,
     SafetyOut,
     TurnOut,
@@ -116,10 +117,12 @@ async def export_me(
     user_id = _user_id(x_user_id)
     conversations = await _service(request).export_user(user_id)
     memory = await _service(request).export_memory(user_id)
+    nudges = await _service(request).export_nudges(user_id)
     return UserExportOut(
         user_id=user_id,
         conversations=[_conversation_out(request, item) for item in conversations],
         memory=[MemoryOut.from_snapshot(item) for item in memory],
+        nudges=[NudgeOut.from_entity(item) for item in nudges],
     )
 
 
@@ -176,6 +179,36 @@ async def delete_memory(
     character_id: str | None = Query(default=None),
 ) -> None:
     await _service(request).delete_memory(_user_id(x_user_id), character_id)
+
+
+@router.get("/me/nudges", response_model=list[NudgeOut])
+async def list_nudges(
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    character_id: str | None = Query(default=None),
+) -> list[NudgeOut]:
+    items = await _service(request).list_nudges(_user_id(x_user_id), character_id)
+    return [NudgeOut.from_entity(item) for item in items]
+
+
+@router.post("/me/nudges/{nudge_id}/ack", response_model=NudgeOut)
+async def ack_nudge(
+    nudge_id: int,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+) -> NudgeOut:
+    item = await _service(request).ack_nudge(nudge_id, user_id=_user_id(x_user_id))
+    return NudgeOut.from_entity(item)
+
+
+@router.post("/me/nudges/{nudge_id}/dismiss", response_model=NudgeOut)
+async def dismiss_nudge(
+    nudge_id: int,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+) -> NudgeOut:
+    item = await _service(request).dismiss_nudge(nudge_id, user_id=_user_id(x_user_id))
+    return NudgeOut.from_entity(item)
 
 
 @router.post("/conversations/{conversation_id}/turns", response_model=TurnOut)
