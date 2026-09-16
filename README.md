@@ -65,13 +65,12 @@ src/app/
 - 模型超时与重试、主模型失败后备用供应商、再失败则角色口吻降级
 - JSON 日志（带 request_id）、`x-request-id`、CORS
 - `/healthz` `/readyz`（未就绪 503）`/metrics`（turn 的 P50 / P95）
-- 固定评测集：人设、拒绝、重复率、记忆抽取（`src/app/eval/datasets/`，硬规则打分）
+- 固定评测集：人设、拒绝、重复率、记忆抽取与多轮记忆准确性（`src/app/eval/datasets/`，硬规则打分）。默认 Stub；`python -m app.eval --live` 才打 `.env` 里的真模型
 - 陪伴对话页：React（Vite）。源码 `web/`，构建后由 FastAPI 在 `/` 托管；成年确认、AI 披露、SSE。接口文档仍在 `/docs`
 
 ## 下一步
 
-1. **P2**：把评测集接到真实模型跑分，补记忆准确性
-2. **旁路**：ASR / TTS / RTC、Avatar
+1. **旁路**：ASR / TTS / RTC、Avatar（不进对话图）
 
 ## 本地运行
 
@@ -111,10 +110,12 @@ curl -N http://127.0.0.1:8000/v1/conversations/<conversation_id>/turns/stream \
   -d '{"text":"还是停不下来"}'
 ```
 
-评测（默认 FakeModel，不打网关）：
+评测（默认 FakeModel / Stub，不打网关）：
 
 ```bash
 python -m app.eval
+# 用 .env 里的真实模型跑 service / 多轮记忆样本
+python -m app.eval --live
 # 有 LANGSMITH_API_KEY 时把样本同步到 LangSmith
 python -m app.eval --sync
 ```

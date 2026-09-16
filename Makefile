@@ -1,4 +1,4 @@
-.PHONY: install run test typecheck eval migrate web
+.PHONY: install run test typecheck eval eval-live migrate web
 
 install:
 	.venv/bin/pip install -e ".[dev]" -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
@@ -17,6 +17,9 @@ test: typecheck
 
 eval:
 	.venv/bin/python -m app.eval
+
+eval-live:
+	.venv/bin/python -m app.eval --live
 
 migrate:
 	.venv/bin/alembic upgrade head
