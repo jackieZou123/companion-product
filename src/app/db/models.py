@@ -1,4 +1,4 @@
-"""会话和消息表。"""
+"""会话、消息和长期记忆表。"""
 
 from datetime import datetime, timezone
 
@@ -47,3 +47,51 @@ class MessageRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     conversation: Mapped[ConversationRow] = relationship(back_populates="messages")
+
+
+class MemoryProfileRow(Base):
+    """当前画像槽位。同一用户+角色+槽位只保留最新值。"""
+
+    __tablename__ = "memory_profile"
+    __table_args__ = (
+        UniqueConstraint("user_id", "character_id", "slot", name="uq_memory_profile_slot"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    character_id: Mapped[str] = mapped_column(String(64), index=True)
+    slot: Mapped[str] = mapped_column(String(32))
+    value: Mapped[str] = mapped_column(String(64))
+    source: Mapped[str] = mapped_column(String(32), default="user_said")
+    conversation_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class MemoryEventRow(Base):
+    """画像变更来源。可按条删除，不自动回滚槽位。"""
+
+    __tablename__ = "memory_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    character_id: Mapped[str] = mapped_column(String(64), index=True)
+    slot: Mapped[str] = mapped_column(String(32))
+    value: Mapped[str] = mapped_column(String(64))
+    source_text: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(32), default="user_said")
+    conversation_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class MemoryRelationshipRow(Base):
+    """一对用户+角色的关系阶段。"""
+
+    __tablename__ = "memory_relationship"
+
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    character_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    stage: Mapped[str] = mapped_column(String(16), default="new")
+    turn_count: Mapped[int] = mapped_column(Integer, default=0)
+    conversation_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_conversation_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
