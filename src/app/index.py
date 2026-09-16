@@ -19,6 +19,7 @@ from app.db import create_engine, create_schema, create_session_factory
 from app.dialogue import DialogueService
 from app.dialogue.store import SqlConversationStore
 from app.llm import ChatModel, ChatModelFactory
+from app.memory.store import SqlMemoryStore
 from app.observability import configure_logging, request_id_ctx
 from app.observability.metrics import LatencyWindow
 from app.observability.tracing import configure_tracing
@@ -60,15 +61,17 @@ def create_app(
         # 启动时建表、注入对话服务；关闭时释放连接池
         engine = create_engine(resolved.database_url)
         await create_schema(engine)
+        session_factory = create_session_factory(engine)
         app.state.dialogue = DialogueService(
             settings=resolved,
-            store=SqlConversationStore(create_session_factory(engine)),
+            store=SqlConversationStore(session_factory),
             characters=CharacterRepository(),
             llm_factory=ChatModelFactory(
                 resolved,
                 override=llm_override,
                 fallback_override=llm_fallback_override,
             ),
+            memory=SqlMemoryStore(session_factory),
             safety=SafetyPolicy(),
             latency=LatencyWindow(),
         )

@@ -13,6 +13,8 @@ from app.dialogue.store import SqlConversationStore
 from app.eval.cases import EvalCase
 from app.eval.scorers import Score, score_case
 from app.llm import ChatModel, ChatModelFactory
+from app.memory.extract import extract, render_facts
+from app.memory.store import SqlMemoryStore
 from app.observability.metrics import LatencyWindow
 from app.safety import SafetyPolicy
 
@@ -36,12 +38,14 @@ class EvalRuntime:
 async def make_runtime(settings: Settings, model: ChatModel) -> EvalRuntime:
     engine = create_engine(settings.database_url)
     await create_schema(engine)
-    store = SqlConversationStore(create_session_factory(engine))
+    session_factory = create_session_factory(engine)
+    store = SqlConversationStore(session_factory)
     service = DialogueService(
         settings=settings,
         store=store,
         characters=CharacterRepository(),
         llm_factory=ChatModelFactory(settings, override=model),
+        memory=SqlMemoryStore(session_factory),
         safety=SafetyPolicy(),
         latency=LatencyWindow(),
     )
@@ -51,6 +55,9 @@ async def make_runtime(settings: Settings, model: ChatModel) -> EvalRuntime:
 async def run_case(runtime: EvalRuntime, case: EvalCase) -> CaseResult:
     if case.runner == "prompt":
         text = CharacterRepository().get(case.character_id).system_prompt()
+        return CaseResult(case, score_case(case, text=text), text, 0)
+    if case.runner == "extract":
+        text = render_facts(extract(case.user_text))
         return CaseResult(case, score_case(case, text=text), text, 0)
     if case.runner in {"reply", "reply_pair"}:
         return CaseResult(case, score_case(case, text=case.assistant_text), case.assistant_text, 0)

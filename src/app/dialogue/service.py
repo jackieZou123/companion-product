@@ -23,6 +23,8 @@ from app.dialogue.store import (
     SqlConversationStore,
 )
 from app.llm import ChatModelFactory, LLMConfigurationError
+from app.memory.models import MemorySnapshot
+from app.memory.store import SqlMemoryStore
 from app.observability.metrics import LatencyWindow
 from app.observability.tracing import dialogue_trace, turn_run_config
 from app.safety import SafetyPolicy
@@ -56,6 +58,7 @@ class DialogueService:
         store: SqlConversationStore,
         characters: CharacterRepository,
         llm_factory: ChatModelFactory,
+        memory: SqlMemoryStore,
         safety: SafetyPolicy | None = None,
         react: ReactPolicy | None = None,
         latency: LatencyWindow | None = None,
@@ -64,11 +67,12 @@ class DialogueService:
         self._store = store
         self._characters = characters
         self._llm_factory = llm_factory
+        self._memory = memory
         self._safety = safety or SafetyPolicy()
         self._react = react or ReactPolicy()
         self._latency = latency or LatencyWindow()
         self._graph = build_dialogue_graph(
-            characters, llm_factory, self._safety, self._react
+            characters, llm_factory, self._safety, self._react, memory
         )
 
     async def ping(self) -> None:
@@ -108,7 +112,45 @@ class DialogueService:
         await self._store.delete(conversation_id, user_id=user_id)
 
     async def delete_user_data(self, user_id: str) -> int:
-        return await self._store.delete_all_for_user(user_id)
+        deleted = await self._store.delete_all_for_user(user_id)
+        await self._memory.delete_all_for_user(user_id)
+        return deleted
+
+    def _character_id(self, character_id: str | None) -> str:
+        resolved = character_id or self._characters.default_id()
+        self._characters.get(resolved)
+        return resolved
+
+    async def get_memory(
+        self, user_id: str, character_id: str | None = None
+    ) -> MemorySnapshot:
+        return await self._memory.recall(user_id, self._character_id(character_id))
+
+    async def export_memory(self, user_id: str) -> list[MemorySnapshot]:
+        return await self._memory.list_for_user(user_id)
+
+    async def patch_memory_profile(
+        self,
+        user_id: str,
+        slot: str,
+        value: str,
+        character_id: str | None = None,
+    ) -> MemorySnapshot:
+        return await self._memory.patch_profile(
+            user_id, self._character_id(character_id), slot, value
+        )
+
+    async def delete_memory_event(
+        self, event_id: int, *, user_id: str, character_id: str | None = None
+    ) -> None:
+        await self._memory.delete_event(
+            event_id, user_id=user_id, character_id=self._character_id(character_id)
+        )
+
+    async def delete_memory(
+        self, user_id: str, character_id: str | None = None
+    ) -> None:
+        await self._memory.delete_all(user_id, self._character_id(character_id))
 
     def disclosure_for(self, character_id: str) -> str:
         return self._characters.get(character_id).disclosure
@@ -207,7 +249,8 @@ class DialogueService:
             model_used = self._settings.llm_model
             degraded = False
             used_model = False
-            if not decision.allowed:
+            input_allowed = decision.allowed
+            if not input_allowed:
                 assistant_text = character.refusal_text(decision.code)
                 pieces.append(assistant_text)
                 yield StreamEvent("react", {"action": "none", "code": ""})
@@ -230,6 +273,9 @@ class DialogueService:
                     yield StreamEvent("token", {"text": reaction.text})
                 else:
                     used_model = True
+                    snapshot = await self._memory.recall(
+                        conversation.user_id, conversation.character_id
+                    )
                     generation: Generation | None = None
                     async for item in self._iter_tokens(
                         conversation,
@@ -237,6 +283,7 @@ class DialogueService:
                         text,
                         config,
                         react_hint=reaction.text,
+                        memory_block=snapshot.prompt_block(),
                     ):
                         if isinstance(item, Generation):
                             generation = item
@@ -261,6 +308,13 @@ class DialogueService:
                         {"action": reviewed.action, "code": reviewed.code},
                     )
             await self._store.append(conversation.id, text, assistant_text)
+            if input_allowed:
+                await self._memory.remember(
+                    conversation.user_id,
+                    conversation.character_id,
+                    text,
+                    conversation.id,
+                )
             result = self._finish(
                 conversation.id,
                 assistant_text,
@@ -307,6 +361,7 @@ class DialogueService:
         user_text: str,
         config: RunnableConfig,
         react_hint: str = "",
+        memory_block: str = "",
     ) -> AsyncIterator[str | Generation]:
         history = conversation.messages[-self._settings.short_term_turn_limit * 2 :]
         messages = build_model_messages(
@@ -315,6 +370,7 @@ class DialogueService:
             user_text,
             react_hint=react_hint,
             address=address_for(conversation.gender),
+            memory_block=memory_block,
         )
         async for item in astream_generation(
             self._llm_factory, character, messages, config
@@ -362,6 +418,7 @@ class DialogueService:
             "react_code": "",
             "react_hint": "",
             "address": address_for(conversation.gender),
+            "memory_block": "",
             "assistant_text": "",
             "model_used": "",
             "degraded": False,

@@ -1,4 +1,4 @@
-"""LangGraph：START → safety → refuse | react → generate → review。"""
+"""LangGraph：START → safety → refuse | react → recall → generate → review → remember。"""
 
 from langchain.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.messages import BaseMessage
@@ -10,6 +10,7 @@ from app.character.react import ReactPolicy
 from app.dialogue.generate import invoke_generation
 from app.dialogue.state import DialogueState, HistoryMessage
 from app.llm import ChatModelFactory
+from app.memory.store import SqlMemoryStore
 from app.safety import SafetyPolicy
 
 
@@ -19,6 +20,7 @@ def build_model_messages(
     user_text: str,
     react_hint: str = "",
     address: str = "",
+    memory_block: str = "",
 ) -> list[BaseMessage]:
     """拼 System + 历史 + 本轮用户句。流式和非流式都走这里。"""
     messages: list[BaseMessage] = [
@@ -31,6 +33,8 @@ def build_model_messages(
                 content=f"这一轮用户在喊你。先用这句口吻应一声，再接后头的话。不要解释规则：{react_hint}"
             )
         )
+    if memory_block:
+        messages.append(SystemMessage(content=memory_block))
     for item in history:
         if item["role"] == "assistant":
             messages.append(AIMessage(content=item["content"]))
@@ -45,6 +49,7 @@ def build_dialogue_graph(
     llm_factory: ChatModelFactory,
     safety: SafetyPolicy,
     react: ReactPolicy | None = None,
+    memory: SqlMemoryStore | None = None,
 ):
     reactions = react or ReactPolicy()
 
@@ -82,7 +87,13 @@ def build_dialogue_graph(
         }
 
     def route_after_react(state: DialogueState) -> str:
-        return "done" if state.assistant_text else "generate"
+        return "remember" if state.assistant_text else "recall"
+
+    async def recall_node(state: DialogueState) -> dict:
+        if memory is None or not state.user_id:
+            return {"memory_block": ""}
+        snapshot = await memory.recall(state.user_id, state.character_id)
+        return {"memory_block": snapshot.prompt_block()}
 
     def generate_node(state: DialogueState, config: RunnableConfig) -> dict:
         character = characters.get(state.character_id)
@@ -92,6 +103,7 @@ def build_dialogue_graph(
             state.user_text,
             react_hint=state.react_hint,
             address=state.address,
+            memory_block=state.memory_block,
         )
         # 把父 span 的 metadata 传下去，LangSmith 才能把 LLM 调用挂到同一轮
         generation = invoke_generation(llm_factory, character, messages, config)
@@ -113,11 +125,25 @@ def build_dialogue_graph(
             "safety_code": "output_blocked",
         }
 
+    async def remember_node(state: DialogueState) -> dict:
+        # 入口拒绝不写；出口拦截仍记下用户亲口的肤质
+        if memory is None or not state.user_id:
+            return {}
+        await memory.remember(
+            state.user_id,
+            state.character_id,
+            state.user_text,
+            state.conversation_id,
+        )
+        return {}
+
     graph = StateGraph(DialogueState)
     graph.add_node("safety", safety_node)
     graph.add_node("react", react_node)
+    graph.add_node("recall", recall_node)
     graph.add_node("generate", generate_node)
     graph.add_node("review", review_node)
+    graph.add_node("remember", remember_node)
     graph.add_node("refuse", refuse_node)
     graph.add_edge(START, "safety")
     graph.add_conditional_edges(
@@ -128,9 +154,11 @@ def build_dialogue_graph(
     graph.add_conditional_edges(
         "react",
         route_after_react,
-        {"generate": "generate", "done": END},
+        {"recall": "recall", "remember": "remember"},
     )
+    graph.add_edge("recall", "generate")
     graph.add_edge("generate", "review")
-    graph.add_edge("review", END)
+    graph.add_edge("review", "remember")
+    graph.add_edge("remember", END)
     graph.add_edge("refuse", END)
     return graph.compile()  # 进程内复用，不要每个请求 compile
