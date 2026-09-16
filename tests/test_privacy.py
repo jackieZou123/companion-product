@@ -73,6 +73,7 @@ def test_delete_conversation_and_user_data():
         assert export["user_id"] == "u_1"
         assert len(export["conversations"]) == 1
         assert export["conversations"][0]["conversation_id"] == second
+        assert "memory" in export
         wiped = client.delete("/v1/me")
         assert wiped.status_code == 200
         assert wiped.json()["deleted"] == 1

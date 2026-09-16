@@ -3,7 +3,7 @@
 import json
 import logging
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.pages.schemas import (
@@ -12,6 +12,8 @@ from app.pages.schemas import (
     CreateConversationBody,
     CreateTurnBody,
     DeletedOut,
+    MemoryOut,
+    PatchMemoryProfileBody,
     SafetyOut,
     TurnOut,
     UserExportOut,
@@ -113,9 +115,11 @@ async def export_me(
 ) -> UserExportOut:
     user_id = _user_id(x_user_id)
     conversations = await _service(request).export_user(user_id)
+    memory = await _service(request).export_memory(user_id)
     return UserExportOut(
         user_id=user_id,
         conversations=[_conversation_out(request, item) for item in conversations],
+        memory=[MemoryOut.from_snapshot(item) for item in memory],
     )
 
 
@@ -126,6 +130,52 @@ async def delete_me(
 ) -> DeletedOut:
     deleted = await _service(request).delete_user_data(_user_id(x_user_id))
     return DeletedOut(deleted=deleted)
+
+
+@router.get("/me/memory", response_model=MemoryOut)
+async def get_memory(
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    character_id: str | None = Query(default=None),
+) -> MemoryOut:
+    snapshot = await _service(request).get_memory(_user_id(x_user_id), character_id)
+    return MemoryOut.from_snapshot(snapshot)
+
+
+@router.patch("/me/memory/profile", response_model=MemoryOut)
+async def patch_memory_profile(
+    body: PatchMemoryProfileBody,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+) -> MemoryOut:
+    snapshot = await _service(request).patch_memory_profile(
+        _user_id(x_user_id),
+        body.slot,
+        body.value,
+        character_id=body.character_id,
+    )
+    return MemoryOut.from_snapshot(snapshot)
+
+
+@router.delete("/me/memory/events/{event_id}", status_code=204)
+async def delete_memory_event(
+    event_id: int,
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    character_id: str | None = Query(default=None),
+) -> None:
+    await _service(request).delete_memory_event(
+        event_id, user_id=_user_id(x_user_id), character_id=character_id
+    )
+
+
+@router.delete("/me/memory", status_code=204)
+async def delete_memory(
+    request: Request,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    character_id: str | None = Query(default=None),
+) -> None:
+    await _service(request).delete_memory(_user_id(x_user_id), character_id)
 
 
 @router.post("/conversations/{conversation_id}/turns", response_model=TurnOut)

@@ -16,6 +16,8 @@ from app.dialogue.errors import (
 )
 from app.dialogue.service import LLMConfigurationError
 from app.dialogue.store import Conversation
+from app.memory.errors import InvalidMemoryProfileError, MemoryEventNotFoundError
+from app.memory.models import MemorySnapshot
 
 
 class CreateConversationBody(BaseModel):
@@ -64,13 +66,75 @@ class ConversationSummaryOut(BaseModel):
     message_count: int
 
 
+class DeletedOut(BaseModel):
+    deleted: int
+
+
+class MemoryProfileOut(BaseModel):
+    slot: str
+    value: str
+
+
+class MemoryEventOut(BaseModel):
+    id: int
+    slot: str
+    value: str
+    source_text: str
+    source: str
+    created_at: datetime
+
+
+class MemoryRelationshipOut(BaseModel):
+    stage: str
+    turn_count: int
+    conversation_count: int
+
+
+class MemoryOut(BaseModel):
+    user_id: str
+    character_id: str
+    profile: list[MemoryProfileOut]
+    events: list[MemoryEventOut]
+    relationship: MemoryRelationshipOut
+
+    @classmethod
+    def from_snapshot(cls, snapshot: MemorySnapshot) -> "MemoryOut":
+        return cls(
+            user_id=snapshot.user_id,
+            character_id=snapshot.character_id,
+            profile=[
+                MemoryProfileOut(slot=item.slot, value=item.value)
+                for item in snapshot.profile
+            ],
+            events=[
+                MemoryEventOut(
+                    id=item.id,
+                    slot=item.slot,
+                    value=item.value,
+                    source_text=item.source_text,
+                    source=item.source,
+                    created_at=item.created_at,
+                )
+                for item in snapshot.events
+            ],
+            relationship=MemoryRelationshipOut(
+                stage=snapshot.stage,
+                turn_count=snapshot.turn_count,
+                conversation_count=snapshot.conversation_count,
+            ),
+        )
+
+
+class PatchMemoryProfileBody(BaseModel):
+    slot: str = Field(min_length=1, max_length=32)
+    value: str = Field(default="", max_length=64)
+    character_id: str | None = None
+
+
 class UserExportOut(BaseModel):
     user_id: str
     conversations: list[ConversationOut]
-
-
-class DeletedOut(BaseModel):
-    deleted: int
+    memory: list[MemoryOut] = []
 
 
 class CreateTurnBody(BaseModel):
@@ -112,3 +176,11 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(LLMConfigurationError)
     async def llm_config(_: Request, exc: LLMConfigurationError):
         return JSONResponse(status_code=500, content={"detail": str(exc)})
+
+    @app.exception_handler(MemoryEventNotFoundError)
+    async def memory_event_not_found(_: Request, __: MemoryEventNotFoundError):
+        return JSONResponse(status_code=404, content={"detail": "记忆事件不存在"})
+
+    @app.exception_handler(InvalidMemoryProfileError)
+    async def invalid_memory_profile(_: Request, exc: InvalidMemoryProfileError):
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
