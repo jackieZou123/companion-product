@@ -15,6 +15,7 @@ alwaysApply: false
 - 本轮口吻用 `intent_hint`，禁止写进 `mei_li_kou.json`
 - 本仓不查排班、不落预约、不编「已经约上」
 - 店员排班/产品状态走宿主 API，不进对话图
+- 客户端鉴权并核满 18 岁后带 `X-User-Id`；可选 `X-Audience: customer|staff`（缺省客户）。店员回合不发客户预约 `action`
 - `stream_turn` 与图共用同一套 `IntentPolicy`
 
 ```python

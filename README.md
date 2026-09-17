@@ -48,7 +48,8 @@ src/app/
 
 ## 当前能力
 
-- `POST /v1/conversations` 创建一对一会话（必须带 `X-User-Id`；成年校验由客户端账号负责）
+- `POST /v1/conversations` 创建一对一会话（必须带 `X-User-Id`；鉴权和满 18 岁由客户端账号负责）
+- 可选 `X-Audience: customer|staff`（缺省 `customer`）。店员回合不发客户预约 `action`；排班/产品状态仍走宿主 API
 - `GET /v1/conversations` 当前用户的会话列表
 - `GET /v1/conversations/{id}` 含历史消息；别人的会话返回 404
 - `DELETE /v1/conversations/{id}` 删除一条会话

@@ -32,10 +32,14 @@ START → safety → refuse | react → intent → recall → generate → revie
 
 ## 客户 vs 店员
 
-| 谁 | 进 `/v1` | 做什么 |
-|---|---|---|
-| 客户 | 对玫莉蔻说话 | 意图出 `action`，人话仍是她；确认卡/结果在壳上 |
-| 店员 | 排班、产品状态**不要**进对话图 | 店员壳 + 业务 API；误打进来标 `none`，按「皮肤以外不懂」说 |
+鉴权、满 18 岁由**客户端**做完，再带 `X-User-Id`。可选 `X-Audience: customer|staff`（缺省 `customer`）。内核不验 JWT、不核年龄。
+
+| 谁 | 头 | 进 `/v1` 对话 | 做什么 |
+|---|---|---|---|
+| 客户 | `X-Audience: customer` 或不带 | 对玫莉蔻说话 | 意图出 `action`，人话仍是她；确认卡/结果在壳上 |
+| 店员 | `X-Audience: staff` | 误打进对话图 | 客户预约 `action` 标 `none`；排班/产品状态走宿主 API，不进本图 |
+
+JWT 网关以后再加；现在只留这个口子，避免两个端共用同一套预约动作。
 
 ## 不要
 
@@ -49,3 +53,4 @@ START → safety → refuse | react → intent → recall → generate → revie
 - 命中样本 → `action.code` 与槽位正确；回复禁止值班/已经约好/客服套话
 - 脸干 → `action` 为空
 - 未成年/改身份 → 无 `action`，不调模型
+- 省略 `X-Audience` → 当客户，预约有 `action`；`staff` → 同一句无 `action`；非法值 → 400

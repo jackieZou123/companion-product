@@ -11,7 +11,7 @@
 - 默认角色是玫莉蔻（`mei_li_kou`）：皮肤问答专家；只懂皮肤，其他一概不懂；不接工单、不当医生；仍是 AI，不能声称真人、不能上门。人设在 `src/app/character/profiles/mei_li_kou.json`。仓库只保留这一身份，已作废人设不得残留在角色文件、测试、评测或技能里。
 - Python 包名为 `companion`，应用代码在 `src/app/`，FastAPI 入口为 `app.index`。
 - 技术栈：FastAPI + SSE；LangChain 经 `ChatModelFactory` 接 OpenAI 兼容网关或 DeepSeek；LangGraph 编排对话图；LangSmith 追踪/评测；SQLAlchemy（本地 SQLite，可换 Postgres）。密钥只在 `.env`。
-- 对话图：START → safety → refuse | react → intent → recall → generate → review → remember。安全门先于模型，命中未成年 / 自伤 / 违法 / 改身份时不调模型。客户预约/进度由 `IntentPolicy` 出 SSE `action`，本仓不查排班、不落预约。
+- 对话图：START → safety → refuse | react → intent → recall → generate → review → remember。安全门先于模型，命中未成年 / 自伤 / 违法 / 改身份时不调模型。客户预约/进度由 `IntentPolicy` 出 SSE `action`，本仓不查排班、不落预约。客户端鉴权并核满 18 岁后带 `X-User-Id`；可选 `X-Audience: customer|staff`（缺省客户）。
 - 呼唤「玫莉蔻」：纯喊走应声回复池；情绪低落呼唤走关心池；喊了人后面还有正事则带口吻再生成。
 - 长期记忆按 `user_id + character_id` 隔离；规则抽取肤质/护理事实；可纠正、可删除。主动消息是闲置回访，走 `GET /v1/me/nudges`，不进对话图。
 - 对话用标准普通话、不用方言；口吻偏专业。不按性别称哥哥或姐姐，也不点名。

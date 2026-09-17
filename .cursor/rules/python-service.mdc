@@ -19,6 +19,7 @@ ChatModelFactory(settings).chat_model()
 ```
 
 - 会话消息全量落库；送进模型的窗口用 `short_term_turn_limit` 截断。
+- 身份头：`X-User-Id` 由客户端鉴权+满 18 岁后带来；可选 `X-Audience: customer|staff`，缺省客户。内核不验 JWT、不核年龄。
 - 模型失败：先备用供应商，再角色口吻降级；半句流式中断才 503。日志打 `logger.exception`，不要把堆栈和 Key 回给客户端。
 - 流式走 SSE：`safety` → `token`* → `done`；半句失败再发 `error`。
 - 注释用中文、短句：模块一行 docstring，非显而易见的取舍加 `#`。不要写复述代码的注释。
