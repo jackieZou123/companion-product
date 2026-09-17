@@ -6,9 +6,9 @@ alwaysApply: false
 
 # 对话内核
 
-`START → safety → refuse | react → generate → review → END`。新增能力加节点，不要加长 System Prompt。
+`START → safety → refuse | react → intent → recall → generate → review → remember`。新增能力加节点，不要加长 System Prompt。
 
-`stream_turn` 必须复用同一套 `SafetyPolicy`、`ReactPolicy` 和 `build_model_messages`，禁止另写一套生成逻辑。
+`stream_turn` 必须复用同一套 `SafetyPolicy`、`ReactPolicy`、`IntentPolicy` 和 `build_model_messages`，禁止另写一套生成逻辑。预约/进度见 `companion-actions`。
 
 # 角色
 

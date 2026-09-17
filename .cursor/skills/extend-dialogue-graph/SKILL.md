@@ -7,7 +7,7 @@ description: Adds or changes LangGraph dialogue nodes (safety, generate, refuse,
 
 ## 何时用
 
-新能力是「另一类决策或副作用」（记忆写入、关系判断、主动消息、审核），不是多写两句人设。
+新能力是「另一类决策或副作用」（记忆写入、关系判断、主动消息、审核、预约意图），不是多写两句人设。预约/进度走 `IntentPolicy`，见 `companion-actions`。
 
 ## 步骤
 
@@ -15,7 +15,7 @@ description: Adds or changes LangGraph dialogue nodes (safety, generate, refuse,
 2. 在 `src/app/dialogue/graph.py` 加 node + edge。`safety` 必须仍是 `START` 后的第一跳。
 3. `generate` 只负责说话。读写存储放独立节点或 `DialogueService`，不要在 generate 里偷偷 `append`。
 4. `stream_turn`（`src/app/dialogue/service.py`）与图共用：
-   - 同一 `SafetyPolicy`
+   - 同一 `SafetyPolicy`、`ReactPolicy`、`IntentPolicy`
    - 同一 `build_model_messages`
    - 落库时机与非流式一致
 5. 非流式走 `ainvoke`，流式自己迭代 token。两边最终 `TurnResult` 字段对齐。

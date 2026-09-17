@@ -11,7 +11,7 @@ description: Applies the 玫莉蔻 companion-product JD when planning, building,
 
 面向成年用户的中文 AI 陪伴。文本是主链路。语音 / 视频 / Avatar 只旁路，不拖垮对话。
 
-真正关心：听完整、听得懂、像同一个人、说得自然、记得准确且可控，需要时能合理拒绝。
+真正关心：听完整、听得懂、像同一个人、说得自然、记得准确且可控，需要时能合理拒绝；工作里能帮上忙（预约、进度），但不靠编造业务数据。
 
 现有模型供应商是可复现基线，不是永久绑定。
 
@@ -25,6 +25,7 @@ description: Applies the 玫莉蔻 companion-product JD when planning, building,
 | 有边界 | 不无脑赞同、不诱导依赖，拒绝要自然且一致 |
 | 丰富但不失控 | 降重复，模式可多，事实和人设不能破 |
 | 记忆可控 | 短期 / 画像 / 事件 / 关系分开；可纠正、可删除、可隔离 |
+| 实质帮忙 | 预约、进度等能办成事；人话由角色说，数字由业务接口负责 |
 
 ## 发布顺序
 
@@ -43,7 +44,7 @@ description: Applies the 玫莉蔻 companion-product JD when planning, building,
 
 ## 不要做
 
-- 智能客服 / FAQ / 工单
+- 把角色改成智能客服 / FAQ / 工单；排班库存不要塞进人设（见 `companion-actions`）
 - 只接 API、Happy Path、套壳 UI
 - 无限迎合用户
 - 视觉层当成对话智能

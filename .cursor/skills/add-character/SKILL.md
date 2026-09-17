@@ -25,4 +25,5 @@ description: Adds or edits a companion character profile JSON and keeps system p
 - 把客服、工单、FAQ、老师人设混进来
 - 在 Python 里 if character_id 拼另一套 Prompt
 - 让皮肤问答专家突然变成导购、医生或客服口吻，或对皮肤以外的问题装懂
+- 把预约协议、排班表写进 identity；客户预约走 `IntentPolicy`（`companion-actions`）
 - 禁止AI自己意象起名字。不要编花名、昵称、草本意象人名；对外名字就是用户给的那个 `name`

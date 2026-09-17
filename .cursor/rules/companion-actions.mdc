@@ -1,0 +1,23 @@
+---
+description: 实质性帮忙走意图节点和 action 事件，不把排班塞进人设
+globs: src/app/dialogue/**/*.py,src/app/eval/datasets/action.json,web/src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# 陪伴动作
+
+帮忙处理工作和查询也是陪伴。客户对人说话，数字以业务接口为准。
+
+图：`START → safety → refuse | react → intent → recall → generate → review → remember`。
+
+- 意图只放 `IntentPolicy`（`dialogue/intent.py`），先于模型
+- SSE / `TurnOut` 的 `action`：`code` + `slots` + `confirm_required`
+- 本轮口吻用 `intent_hint`，禁止写进 `mei_li_kou.json`
+- 本仓不查排班、不落预约、不编「已经约上」
+- 店员排班/产品状态走宿主 API，不进对话图
+- `stream_turn` 与图共用同一套 `IntentPolicy`
+
+```python
+# ❌ 在 identity 里写「可以查星期天谁上班」
+# ✅ IntentPolicy 命中 care_booking，宿主拿 action 调预约接口
+```

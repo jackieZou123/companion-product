@@ -41,4 +41,4 @@ description: >-
 
 **冲突时**：先停手 → 查阅或提问 → 用户确认后再动代码。
 
-敏感改动先方案后实施见 `plan-before-implement`。皮肤事实见 `skin-qa-domain`，不要把 T7 设备实现搬进本仓。
+敏感改动先方案后实施见 `plan-before-implement`。皮肤事实见 `skin-qa-domain`，不要把 T7 设备实现搬进本仓。预约/排班见 `companion-actions`。
