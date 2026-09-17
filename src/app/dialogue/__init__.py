@@ -1,9 +1,6 @@
 """对话内核公开接口。"""
 
-from app.dialogue.errors import (
-    AdultNotConfirmedError,
-    ConversationNotFoundError,
-)
+from app.dialogue.errors import ConversationNotFoundError
 from app.dialogue.service import (
     CharacterNotFoundError,
     DialogueService,
@@ -13,7 +10,6 @@ from app.dialogue.service import (
 )
 
 __all__ = [
-    "AdultNotConfirmedError",
     "CharacterNotFoundError",
     "ConversationNotFoundError",
     "DialogueService",

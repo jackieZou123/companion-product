@@ -10,26 +10,29 @@ def test_missing_user_header_is_401():
         assert response.status_code == 401
 
 
-def test_create_without_adult_confirmation_is_403():
+def test_create_without_adult_confirmed_succeeds():
     with api_client() as client:
         response = client.post(
             "/v1/conversations", json={"adult_confirmed": False, "gender": "female"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 200
+        assert "adult_confirmed" not in response.json()
+        assert "gender" not in response.json()
 
 
-def test_create_without_gender_succeeds():
+def test_create_without_body_fields_succeeds():
     with api_client() as client:
-        response = client.post("/v1/conversations", json={"adult_confirmed": True})
+        response = client.post("/v1/conversations", json={})
         assert response.status_code == 200
         assert "gender" not in response.json()
+        assert "adult_confirmed" not in response.json()
 
 
 def test_create_returns_ai_disclosure():
     with api_client() as client:
         body = start_conversation(client).json()
         assert "AI" in body["ai_disclosure"]
-        assert body["adult_confirmed"] is True
+        assert "adult_confirmed" not in body
 
 
 def test_foreign_user_cannot_read_or_talk():

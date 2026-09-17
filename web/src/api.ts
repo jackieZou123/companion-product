@@ -17,7 +17,6 @@ export type Conversation = {
 
 const KEYS = {
   user: "companion.user_id",
-  adult: "companion.adult",
   current: "companion.conversation_id",
 };
 
@@ -56,14 +55,6 @@ export function loadUserId(): string {
   const created = newUserId();
   storageSet(KEYS.user, created);
   return created;
-}
-
-export function loadAdult(): boolean {
-  return storageGet(KEYS.adult) === "1";
-}
-
-export function saveAdult(): void {
-  storageSet(KEYS.adult, "1");
 }
 
 export function loadCurrentId(): string {

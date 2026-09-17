@@ -3,11 +3,9 @@ import brandLogo from "./assets/brand-logo.png";
 import {
   api,
   clearCurrentId,
-  loadAdult,
   loadCurrentId,
   loadUserId,
   readSse,
-  saveAdult,
   saveCurrentId,
   type ChatMessage,
   type Conversation,
@@ -18,8 +16,6 @@ export default function App() {
   const userId = useRef(loadUserId()).current;
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [adult, setAdult] = useState(loadAdult);
-  const [checked, setChecked] = useState(false);
   const [conversationId, setConversationId] = useState(loadCurrentId);
   const [disclosure, setDisclosure] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -45,7 +41,6 @@ export default function App() {
     const data = await api<Conversation>(userId, "/v1/conversations", {
       method: "POST",
       body: JSON.stringify({
-        adult_confirmed: true,
         character_id: "mei_li_kou",
       }),
     });
@@ -59,9 +54,8 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!adult) return;
     boot().catch((error: Error) => setStatus(error.message));
-  }, [adult]);
+  }, []);
 
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView({ block: "end" });
@@ -73,7 +67,6 @@ export default function App() {
       const created = await api<Conversation>(userId, "/v1/conversations", {
         method: "POST",
         body: JSON.stringify({
-          adult_confirmed: true,
           character_id: "mei_li_kou",
         }),
       });
@@ -168,74 +161,6 @@ export default function App() {
     setMenuOpen(false);
   }
 
-  function widgetBody() {
-    if (!adult) {
-      return (
-        <div className="widget-gate">
-          <BrandMark invert />
-          <h1 className="sr-only">玫莉蔻</h1>
-          <p className="gate-copy">
-            皮肤问答专家。懂肤质、屏障和护理里那些烦，陪你把皮肤的事说清楚。这是 AI 陪伴，不是真人，也不会上门。
-          </p>
-          <label className="check">
-            <input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} />
-            <span>我已满 18 岁，以成年人身份来聊天</span>
-          </label>
-          <button
-            type="button"
-            disabled={!checked}
-            onClick={() => {
-              saveAdult();
-              setAdult(true);
-            }}
-          >
-            进入
-          </button>
-        </div>
-      );
-    }
-    return (
-      <>
-        <div className="widget-body">
-          <ol className="messages" aria-live="polite" ref={listRef}>
-            {messages.length === 0 ? (
-              <li className="msg empty">皮肤上的烦，可以直接说。也可以先喊一声玫莉蔻。</li>
-            ) : (
-              messages.map((item, index) => (
-                <li key={`${item.role}-${index}`} className={`msg ${item.role}`}>
-                  {item.content}
-                </li>
-              ))
-            )}
-          </ol>
-          {status ? <p className="status">{status}</p> : null}
-        </div>
-        <form className="composer" onSubmit={onSubmit}>
-          <label className="sr-only" htmlFor="draft">
-            说点什么
-          </label>
-          <textarea
-            id="draft"
-            rows={2}
-            maxLength={4000}
-            value={draft}
-            placeholder="喊一声玫莉蔻，或说说皮肤最近怎么了"
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                event.currentTarget.form?.requestSubmit();
-              }
-            }}
-          />
-          <button type="submit" disabled={busy}>
-            发送
-          </button>
-        </form>
-      </>
-    );
-  }
-
   return (
     <div className="desktop">
       {open ? (
@@ -248,35 +173,68 @@ export default function App() {
               {disclosure ? <p className="disclosure">{disclosure}</p> : null}
             </div>
             <div className="widget-actions">
-              {adult ? (
-                <div className="menu-wrap">
-                  <button
-                    className="icon-btn"
-                    type="button"
-                    aria-label="更多"
-                    aria-expanded={menuOpen}
-                    onClick={() => setMenuOpen((current) => !current)}
-                  >
-                    ⋯
-                  </button>
-                  {menuOpen ? (
-                    <div className="menu">
-                      <button className="text-btn" type="button" onClick={exportData}>
-                        导出我的记录
-                      </button>
-                      <button className="text-btn danger" type="button" onClick={wipeData}>
-                        清空本地数据
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+              <div className="menu-wrap">
+                <button
+                  className="icon-btn"
+                  type="button"
+                  aria-label="更多"
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((current) => !current)}
+                >
+                  ⋯
+                </button>
+                {menuOpen ? (
+                  <div className="menu">
+                    <button className="text-btn" type="button" onClick={exportData}>
+                      导出我的记录
+                    </button>
+                    <button className="text-btn danger" type="button" onClick={wipeData}>
+                      清空本地数据
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               <button className="icon-btn" type="button" aria-label="收起对话" onClick={collapse}>
                 –
               </button>
             </div>
           </header>
-          {widgetBody()}
+          <div className="widget-body">
+            <ol className="messages" aria-live="polite" ref={listRef}>
+              {messages.length === 0 ? (
+                <li className="msg empty">皮肤上的烦，可以直接说。也可以先喊一声玫莉蔻。</li>
+              ) : (
+                messages.map((item, index) => (
+                  <li key={`${item.role}-${index}`} className={`msg ${item.role}`}>
+                    {item.content}
+                  </li>
+                ))
+              )}
+            </ol>
+            {status ? <p className="status">{status}</p> : null}
+          </div>
+          <form className="composer" onSubmit={onSubmit}>
+            <label className="sr-only" htmlFor="draft">
+              说点什么
+            </label>
+            <textarea
+              id="draft"
+              rows={2}
+              maxLength={4000}
+              value={draft}
+              placeholder="喊一声玫莉蔻，或说说皮肤最近怎么了"
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+            />
+            <button type="submit" disabled={busy}>
+              发送
+            </button>
+          </form>
         </section>
       ) : (
         <button
@@ -295,10 +253,8 @@ export default function App() {
   );
 }
 
-function BrandMark({ invert = false, compact = false }: { invert?: boolean; compact?: boolean }) {
-  const className = ["brand-logo", invert ? "invert" : "", compact ? "compact" : ""]
-    .filter(Boolean)
-    .join(" ");
+function BrandMark({ compact = false }: { compact?: boolean }) {
+  const className = ["brand-logo", compact ? "compact" : ""].filter(Boolean).join(" ");
   return <img className={className} src={brandLogo} alt="玫莉蔻" />;
 }
 

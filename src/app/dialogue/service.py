@@ -94,14 +94,12 @@ class DialogueService:
         self,
         user_id: str,
         character_id: str | None,
-        adult_confirmed: bool,
     ) -> Conversation:
         resolved = character_id or self._characters.default_id()
         self._characters.get(resolved)
         return await self._store.create(
             user_id=user_id,
             character_id=resolved,
-            adult_confirmed=adult_confirmed,
         )
 
     async def get_conversation(

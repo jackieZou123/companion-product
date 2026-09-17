@@ -48,7 +48,7 @@ src/app/
 
 ## 当前能力
 
-- `POST /v1/conversations` 创建一对一会话（`X-User-Id` + `adult_confirmed`）
+- `POST /v1/conversations` 创建一对一会话（必须带 `X-User-Id`；成年校验由客户端账号负责）
 - `GET /v1/conversations` 当前用户的会话列表
 - `GET /v1/conversations/{id}` 含历史消息；别人的会话返回 404
 - `DELETE /v1/conversations/{id}` 删除一条会话
@@ -66,7 +66,7 @@ src/app/
 - JSON 日志（带 request_id）、`x-request-id`、CORS
 - `/healthz` `/readyz`（未就绪 503）`/metrics`（turn 的 P50 / P95）
 - 固定评测集：人设、拒绝、重复率、记忆抽取与多轮记忆准确性（`src/app/eval/datasets/`，硬规则打分）。默认 Stub；`python -m app.eval --live` 才打 `.env` 里的真模型
-- 陪伴对话页：React（Vite）。源码 `web/`，构建后由 FastAPI 在 `/` 托管；成年确认、AI 披露、SSE。接口文档仍在 `/docs`
+- 陪伴对话页：React（Vite）。源码 `web/`，构建后由 FastAPI 在 `/` 托管；AI 披露、SSE。接口文档仍在 `/docs`
 
 ## 下一步
 
@@ -99,7 +99,7 @@ curl -s http://127.0.0.1:8000/readyz
 curl -s http://127.0.0.1:8000/v1/conversations \
   -H 'content-type: application/json' \
   -H 'X-User-Id: u_1' \
-  -d '{"character_id":"mei_li_kou","adult_confirmed":true}'
+  -d '{"character_id":"mei_li_kou"}'
 curl -s http://127.0.0.1:8000/v1/conversations/<conversation_id>/turns \
   -H 'content-type: application/json' \
   -H 'X-User-Id: u_1' \

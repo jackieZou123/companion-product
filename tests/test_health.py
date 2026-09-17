@@ -15,7 +15,7 @@ def test_companion_assets_are_served():
         css = client.get("/assets/index.css")
         assert js.status_code == 200
         assert css.status_code == 200
-        assert "我已满 18 岁" in js.text
+        assert "我已满 18 岁" not in js.text
         assert "打开玫莉蔻" in js.text
         assert "新对话" not in js.text
         assert "我是女性" not in js.text

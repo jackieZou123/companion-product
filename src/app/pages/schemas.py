@@ -7,10 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.character import CharacterNotFoundError
-from app.dialogue.errors import (
-    AdultNotConfirmedError,
-    ConversationNotFoundError,
-)
+from app.dialogue.errors import ConversationNotFoundError
 from app.dialogue.service import LLMConfigurationError
 from app.dialogue.store import Conversation
 from app.memory.errors import InvalidMemoryProfileError, MemoryEventNotFoundError
@@ -21,8 +18,8 @@ from app.nudge.models import Nudge
 
 class CreateConversationBody(BaseModel):
     character_id: str | None = None
-    adult_confirmed: bool = False
     # 旧客户端可能仍传，忽略
+    adult_confirmed: bool | None = None
     gender: str | None = None
 
 
@@ -35,7 +32,6 @@ class ConversationOut(BaseModel):
     conversation_id: str
     user_id: str
     character_id: str
-    adult_confirmed: bool = True
     ai_disclosure: str = ""
     messages: list[MessageOut] = []
 
@@ -47,7 +43,6 @@ class ConversationOut(BaseModel):
             conversation_id=conversation.id,
             user_id=conversation.user_id,
             character_id=conversation.character_id,
-            adult_confirmed=conversation.adult_confirmed,
             ai_disclosure=disclosure,
             messages=[
                 MessageOut(role=item["role"], content=item["content"])
@@ -179,10 +174,6 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ConversationNotFoundError)
     async def conversation_not_found(_: Request, __: ConversationNotFoundError):
         return JSONResponse(status_code=404, content={"detail": "会话不存在"})
-
-    @app.exception_handler(AdultNotConfirmedError)
-    async def adult_not_confirmed(_: Request, __: AdultNotConfirmedError):
-        return JSONResponse(status_code=403, content={"detail": "需要确认已成年"})
 
     @app.exception_handler(CharacterNotFoundError)
     async def character_not_found(_: Request, __: CharacterNotFoundError):

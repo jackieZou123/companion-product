@@ -3,7 +3,3 @@
 
 class ConversationNotFoundError(KeyError):
     pass
-
-
-class AdultNotConfirmedError(PermissionError):
-    """创建会话必须显式确认成年。不能靠模型自觉。"""
