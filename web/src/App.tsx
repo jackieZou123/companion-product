@@ -20,11 +20,11 @@ import {
 
 export default function App() {
   const userId = useRef(loadUserId()).current;
+  const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [adult, setAdult] = useState(loadAdult);
   const [gender, setGender] = useState<UserGender | "">(loadGender);
   const [checked, setChecked] = useState(false);
-  const [railOpen, setRailOpen] = useState(false);
-  const [threads, setThreads] = useState<Thread[]>([]);
   const [conversationId, setConversationId] = useState(loadCurrentId);
   const [disclosure, setDisclosure] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -33,21 +33,20 @@ export default function App() {
   const [status, setStatus] = useState("");
   const listRef = useRef<HTMLOListElement>(null);
 
-  async function refreshThreads() {
-    const items = await api<Thread[]>(userId, "/v1/conversations");
-    setThreads(items);
-  }
-
   async function openConversation(id: string) {
     const data = await api<Conversation>(userId, `/v1/conversations/${id}`);
     setConversationId(id);
     saveCurrentId(id);
     setDisclosure(data.ai_disclosure || "");
     setMessages(data.messages);
-    await refreshThreads();
   }
 
-  async function createConversation(nextGender: UserGender = gender || "female") {
+  async function ensureConversation(nextGender: UserGender = gender || "female") {
+    const items = await api<Thread[]>(userId, "/v1/conversations");
+    if (items[0]) {
+      await openConversation(items[0].conversation_id);
+      return;
+    }
     const data = await api<Conversation>(userId, "/v1/conversations", {
       method: "POST",
       body: JSON.stringify({
@@ -62,16 +61,7 @@ export default function App() {
   async function boot() {
     const ready = await fetch("/readyz");
     if (!ready.ok) setStatus("模型还没接上。过一会儿再试。");
-    const items = await api<Thread[]>(userId, "/v1/conversations");
-    if (conversationId && items.some((item) => item.conversation_id === conversationId)) {
-      await openConversation(conversationId);
-      return;
-    }
-    if (items[0]) {
-      await openConversation(items[0].conversation_id);
-      return;
-    }
-    await createConversation();
+    await ensureConversation();
   }
 
   useEffect(() => {
@@ -134,7 +124,6 @@ export default function App() {
         setStatus("");
       }
     });
-    await refreshThreads();
   }
 
   async function onSubmit(event: FormEvent) {
@@ -153,6 +142,7 @@ export default function App() {
   }
 
   async function exportData() {
+    setMenuOpen(false);
     try {
       const data = await api<unknown>(userId, "/v1/me/export");
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -167,6 +157,7 @@ export default function App() {
 
   async function wipeData() {
     if (!window.confirm("把这个浏览器里的对话都清掉？清了就回不来。")) return;
+    setMenuOpen(false);
     try {
       await api(userId, "/v1/me", { method: "DELETE" });
       clearCurrentId();
@@ -174,15 +165,22 @@ export default function App() {
       setGender("");
       setConversationId("");
       setMessages([]);
+      setDisclosure("");
+      setStatus("");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "暂时接不上。");
     }
   }
 
-  if (!adult) {
-    return (
-      <div className="gate">
-        <div className="gate-card">
+  function collapse() {
+    setOpen(false);
+    setMenuOpen(false);
+  }
+
+  function widgetBody() {
+    if (!adult) {
+      return (
+        <div className="widget-gate">
           <BrandMark invert />
           <h1 className="sr-only">玫莉蔻</h1>
           <p className="gate-copy">
@@ -192,18 +190,22 @@ export default function App() {
             <input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} />
             <span>我已满 18 岁，以成年人身份来聊天</span>
           </label>
-          <button type="button" disabled={!checked} onClick={() => { saveAdult(); setAdult(true); }}>
+          <button
+            type="button"
+            disabled={!checked}
+            onClick={() => {
+              saveAdult();
+              setAdult(true);
+            }}
+          >
             进入
           </button>
         </div>
-      </div>
-    );
-  }
-
-  if (!gender) {
-    return (
-      <div className="gate">
-        <div className="gate-card">
+      );
+    }
+    if (!gender) {
+      return (
+        <div className="widget-gate">
           <BrandMark invert />
           <h1 className="sr-only">玫莉蔻</h1>
           <p className="gate-copy">开始之前请选择性别。之后会按这个称呼你：女性称姐姐，男性称哥哥。</p>
@@ -228,70 +230,24 @@ export default function App() {
             </button>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="shell">
-      <aside className={railOpen ? "rail open" : "rail"}>
-        <div className="brand">
-          <BrandMark />
+      );
+    }
+    return (
+      <>
+        <div className="widget-body">
+          <ol className="messages" aria-live="polite" ref={listRef}>
+            {messages.length === 0 ? (
+              <li className="msg empty">皮肤上的烦，可以直接说。也可以先喊一声玫莉蔻。</li>
+            ) : (
+              messages.map((item, index) => (
+                <li key={`${item.role}-${index}`} className={`msg ${item.role}`}>
+                  {item.content}
+                </li>
+              ))
+            )}
+          </ol>
+          {status ? <p className="status">{status}</p> : null}
         </div>
-        <button className="ghost" type="button" onClick={() => createConversation().catch((error: Error) => setStatus(error.message))}>
-          新对话
-        </button>
-        <ul className="threads">
-          {threads.map((item) => (
-            <li key={item.conversation_id}>
-              <button
-                type="button"
-                className={item.conversation_id === conversationId ? "active" : ""}
-                onClick={() => openConversation(item.conversation_id).catch((error: Error) => setStatus(error.message))}
-              >
-                <span>和玫莉蔻</span>
-                <span className="thread-meta">{item.message_count} 句</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div className="rail-foot">
-          <button className="text-btn" type="button" onClick={exportData}>
-            导出我的记录
-          </button>
-          <button className="text-btn danger" type="button" onClick={wipeData}>
-            清空本地数据
-          </button>
-        </div>
-      </aside>
-
-      <main className="stage">
-        <header className="top">
-          <button className="icon-btn" type="button" aria-label="会话列表" onClick={() => setRailOpen((open) => !open)}>
-            ☰
-          </button>
-          <div>
-            <h2>
-              <BrandMark compact />
-            </h2>
-            <p className="disclosure">{disclosure}</p>
-          </div>
-        </header>
-
-        <ol className="messages" aria-live="polite" ref={listRef}>
-          {messages.length === 0 ? (
-            <li className="msg empty">皮肤上的烦，可以直接说。也可以先喊一声玫莉蔻。</li>
-          ) : (
-            messages.map((item, index) => (
-              <li key={`${item.role}-${index}`} className={`msg ${item.role}`}>
-                {item.content}
-              </li>
-            ))
-          )}
-        </ol>
-
-        {status ? <p className="status">{status}</p> : null}
-
         <form className="composer" onSubmit={onSubmit}>
           <label className="sr-only" htmlFor="draft">
             说点什么
@@ -314,7 +270,65 @@ export default function App() {
             发送
           </button>
         </form>
-      </main>
+      </>
+    );
+  }
+
+  return (
+    <div className="desktop">
+      {open ? (
+        <section className="widget" aria-label="玫莉蔻对话">
+          <header className="widget-top">
+            <div className="widget-heading">
+              <h2>
+                <BrandMark compact />
+              </h2>
+              {disclosure ? <p className="disclosure">{disclosure}</p> : null}
+            </div>
+            <div className="widget-actions">
+              {adult && gender ? (
+                <div className="menu-wrap">
+                  <button
+                    className="icon-btn"
+                    type="button"
+                    aria-label="更多"
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen((current) => !current)}
+                  >
+                    ⋯
+                  </button>
+                  {menuOpen ? (
+                    <div className="menu">
+                      <button className="text-btn" type="button" onClick={exportData}>
+                        导出我的记录
+                      </button>
+                      <button className="text-btn danger" type="button" onClick={wipeData}>
+                        清空本地数据
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <button className="icon-btn" type="button" aria-label="收起对话" onClick={collapse}>
+                –
+              </button>
+            </div>
+          </header>
+          {widgetBody()}
+        </section>
+      ) : (
+        <button
+          className="fab"
+          type="button"
+          aria-label="打开玫莉蔻"
+          onClick={() => {
+            setMenuOpen(false);
+            setOpen(true);
+          }}
+        >
+          <img className="fab-logo" src={brandLogo} alt="" />
+        </button>
+      )}
     </div>
   );
 }

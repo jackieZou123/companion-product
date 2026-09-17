@@ -16,8 +16,11 @@ def test_companion_assets_are_served():
         assert js.status_code == 200
         assert css.status_code == 200
         assert "我已满 18 岁" in js.text
+        assert "打开玫莉蔻" in js.text
+        assert "新对话" not in js.text
         assert "玫莉蔻" in js.text
         assert "--leaf" in css.text
+        assert ".fab" in css.text
 
 
 def test_healthz():
