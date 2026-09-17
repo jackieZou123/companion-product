@@ -229,13 +229,6 @@ button {
   cursor: not-allowed;
 }
 
-.gender-choices {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.7rem;
-  margin-top: 1.2rem;
-}
-
 .widget-body {
   min-height: 0;
   display: flex;

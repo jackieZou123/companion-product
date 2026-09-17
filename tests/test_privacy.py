@@ -18,10 +18,11 @@ def test_create_without_adult_confirmation_is_403():
         assert response.status_code == 403
 
 
-def test_create_without_gender_is_422():
+def test_create_without_gender_succeeds():
     with api_client() as client:
         response = client.post("/v1/conversations", json={"adult_confirmed": True})
-        assert response.status_code == 422
+        assert response.status_code == 200
+        assert "gender" not in response.json()
 
 
 def test_create_returns_ai_disclosure():
@@ -29,7 +30,6 @@ def test_create_returns_ai_disclosure():
         body = start_conversation(client).json()
         assert "AI" in body["ai_disclosure"]
         assert body["adult_confirmed"] is True
-        assert body["gender"] == "female"
 
 
 def test_foreign_user_cannot_read_or_talk():
@@ -59,10 +59,9 @@ def test_list_only_own_conversations():
 
 def test_create_reuses_same_conversation():
     with api_client() as client:
-        first = start_conversation(client, gender="female").json()
-        again = start_conversation(client, gender="male").json()
+        first = start_conversation(client).json()
+        again = start_conversation(client).json()
         assert again["conversation_id"] == first["conversation_id"]
-        assert again["gender"] == "female"
         listed = client.get("/v1/conversations").json()
         assert len(listed) == 1
         assert listed[0]["conversation_id"] == first["conversation_id"]

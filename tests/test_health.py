@@ -18,6 +18,8 @@ def test_companion_assets_are_served():
         assert "我已满 18 岁" in js.text
         assert "打开玫莉蔻" in js.text
         assert "新对话" not in js.text
+        assert "我是女性" not in js.text
+        assert "选择性别" not in js.text
         assert "玫莉蔻" in js.text
         assert "--leaf" in css.text
         assert ".fab" in css.text

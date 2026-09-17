@@ -3,7 +3,6 @@
 from app.dialogue.errors import (
     AdultNotConfirmedError,
     ConversationNotFoundError,
-    GenderRequiredError,
 )
 from app.dialogue.service import (
     CharacterNotFoundError,
@@ -17,7 +16,6 @@ __all__ = [
     "AdultNotConfirmedError",
     "CharacterNotFoundError",
     "ConversationNotFoundError",
-    "GenderRequiredError",
     "DialogueService",
     "LLMConfigurationError",
     "StreamEvent",

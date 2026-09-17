@@ -14,7 +14,7 @@
 - 对话图：START → safety → refuse | react → recall → generate → review → remember。安全门先于模型，命中未成年 / 自伤 / 违法 / 改身份时不调模型。
 - 呼唤「玫莉蔻」：纯喊走应声回复池；情绪低落呼唤走关心池；喊了人后面还有正事则带口吻再生成。
 - 长期记忆按 `user_id + character_id` 隔离；规则抽取肤质/护理事实；可纠正、可删除。主动消息是闲置回访，走 `GET /v1/me/nudges`，不进对话图。
-- 对话用标准普通话、不用方言；口吻偏专业。创建会话须先选性别：女称「姐姐」、男称「哥哥」。
+- 对话用标准普通话、不用方言；口吻偏专业。不按性别称哥哥或姐姐，也不点名。
 - T7 一体机设备 Skill（相机、手柄、护理 IPC）不搬进本仓。皮肤问答事实见 `.cursor/skills/skin-qa-domain/`。
 - 对话展示界面在 `web/`（React + Vite）。
 - Git `origin` 为 `git@github.com:jackieZou123/companion-product.git`，默认分支 `main`。

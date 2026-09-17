@@ -13,7 +13,7 @@ from app.character import (
     CharacterProfile,
     CharacterRepository,
 )
-from app.character.address import address_for, fill_address
+from app.character.address import fill_address
 from app.character.react import ReactPolicy
 from app.config import Settings
 from app.dialogue.generate import Generation, astream_generation
@@ -95,16 +95,13 @@ class DialogueService:
         user_id: str,
         character_id: str | None,
         adult_confirmed: bool,
-        gender: str,
     ) -> Conversation:
         resolved = character_id or self._characters.default_id()
         self._characters.get(resolved)
-        # 已有会话直接复用，性别以第一次为准
         return await self._store.create(
             user_id=user_id,
             character_id=resolved,
             adult_confirmed=adult_confirmed,
-            gender=gender,
         )
 
     async def get_conversation(
@@ -207,8 +204,7 @@ class DialogueService:
         if not decision.should_create or latest is None:
             return None
         text = fill_address(
-            pick_reply(bank.replies, f"{user_id}:{character_id}:{now.isoformat()}"),
-            address_for(latest.gender),
+            pick_reply(bank.replies, f"{user_id}:{character_id}:{now.isoformat()}")
         )
         return await self._nudges.create(
             user_id=user_id,
@@ -328,7 +324,6 @@ class DialogueService:
                     character,
                     text,
                     salt=salt,
-                    address=address_for(conversation.gender),
                 )
                 react_action = reaction.action
                 react_code = reaction.code
@@ -436,7 +431,6 @@ class DialogueService:
             history,
             user_text,
             react_hint=react_hint,
-            address=address_for(conversation.gender),
             memory_block=memory_block,
         )
         async for item in astream_generation(
@@ -484,7 +478,6 @@ class DialogueService:
             "react_action": "",
             "react_code": "",
             "react_hint": "",
-            "address": address_for(conversation.gender),
             "memory_block": "",
             "assistant_text": "",
             "model_used": "",

@@ -3,19 +3,15 @@ import brandLogo from "./assets/brand-logo.png";
 import {
   api,
   clearCurrentId,
-  clearGender,
   loadAdult,
   loadCurrentId,
-  loadGender,
   loadUserId,
   readSse,
   saveAdult,
   saveCurrentId,
-  saveGender,
   type ChatMessage,
   type Conversation,
   type Thread,
-  type UserGender,
 } from "./api";
 
 export default function App() {
@@ -23,7 +19,6 @@ export default function App() {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [adult, setAdult] = useState(loadAdult);
-  const [gender, setGender] = useState<UserGender | "">(loadGender);
   const [checked, setChecked] = useState(false);
   const [conversationId, setConversationId] = useState(loadCurrentId);
   const [disclosure, setDisclosure] = useState("");
@@ -41,7 +36,7 @@ export default function App() {
     setMessages(data.messages);
   }
 
-  async function ensureConversation(nextGender: UserGender = gender || "female") {
+  async function ensureConversation() {
     const items = await api<Thread[]>(userId, "/v1/conversations");
     if (items[0]) {
       await openConversation(items[0].conversation_id);
@@ -52,7 +47,6 @@ export default function App() {
       body: JSON.stringify({
         adult_confirmed: true,
         character_id: "mei_li_kou",
-        gender: nextGender,
       }),
     });
     await openConversation(data.conversation_id);
@@ -65,9 +59,9 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!adult || !gender) return;
+    if (!adult) return;
     boot().catch((error: Error) => setStatus(error.message));
-  }, [adult, gender]);
+  }, [adult]);
 
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView({ block: "end" });
@@ -81,7 +75,6 @@ export default function App() {
         body: JSON.stringify({
           adult_confirmed: true,
           character_id: "mei_li_kou",
-          gender: gender || "female",
         }),
       });
       activeId = created.conversation_id;
@@ -161,8 +154,6 @@ export default function App() {
     try {
       await api(userId, "/v1/me", { method: "DELETE" });
       clearCurrentId();
-      clearGender();
-      setGender("");
       setConversationId("");
       setMessages([]);
       setDisclosure("");
@@ -200,35 +191,6 @@ export default function App() {
           >
             进入
           </button>
-        </div>
-      );
-    }
-    if (!gender) {
-      return (
-        <div className="widget-gate">
-          <BrandMark invert />
-          <h1 className="sr-only">玫莉蔻</h1>
-          <p className="gate-copy">开始之前请选择性别。之后会按这个称呼你：女性称姐姐，男性称哥哥。</p>
-          <div className="gender-choices">
-            <button
-              type="button"
-              onClick={() => {
-                saveGender("female");
-                setGender("female");
-              }}
-            >
-              我是女性
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                saveGender("male");
-                setGender("male");
-              }}
-            >
-              我是男性
-            </button>
-          </div>
         </div>
       );
     }
@@ -286,7 +248,7 @@ export default function App() {
               {disclosure ? <p className="disclosure">{disclosure}</p> : null}
             </div>
             <div className="widget-actions">
-              {adult && gender ? (
+              {adult ? (
                 <div className="menu-wrap">
                   <button
                     className="icon-btn"

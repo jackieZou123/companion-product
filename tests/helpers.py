@@ -75,7 +75,7 @@ def test_settings(**overrides: Any) -> Settings:
 
 
 def start_conversation(client: TestClient, **payload: Any):
-    body = {"adult_confirmed": True, "gender": "female", **payload}
+    body = {"adult_confirmed": True, **payload}
     return client.post("/v1/conversations", json=body)
 
 

@@ -1,7 +1,6 @@
 from tests.helpers import FakeModel, api_client, start_conversation
 
 from app.character import CharacterRepository
-from app.character.address import fill_address
 
 
 def test_conversation_turn_uses_character_path():
@@ -23,36 +22,22 @@ def test_conversation_turn_uses_character_path():
 
         stored = client.get(f"/v1/conversations/{conversation_id}").json()
         assert len(stored["messages"]) == 2
-        assert stored["gender"] == "female"
+        assert "gender" not in stored
         assert client.get("/metrics").json()["turns"]["count"] == 1
 
 
-def test_female_turn_prompt_uses_jiejie():
+def test_turn_prompt_does_not_use_gendered_address():
     model = FakeModel("先停掉刺激的步骤。")
     with api_client(model) as client:
-        conversation_id = start_conversation(client, gender="female").json()[
-            "conversation_id"
-        ]
+        conversation_id = start_conversation(client).json()["conversation_id"]
         client.post(
             f"/v1/conversations/{conversation_id}/turns",
             json={"text": "脸干得发紧，晚上还刺"},
         )
         contents = [getattr(item, "content", "") for item in model.last_messages]
-        assert any("对方称「姐姐」" in item for item in contents)
-
-
-def test_male_turn_prompt_uses_gege():
-    model = FakeModel("先停掉刺激的步骤。")
-    with api_client(model) as client:
-        conversation_id = start_conversation(client, gender="male").json()[
-            "conversation_id"
-        ]
-        client.post(
-            f"/v1/conversations/{conversation_id}/turns",
-            json={"text": "脸干得发紧，晚上还刺"},
-        )
-        contents = [getattr(item, "content", "") for item in model.last_messages]
-        assert any("对方称「哥哥」" in item for item in contents)
+        joined = "\n".join(contents)
+        assert "对方称「姐姐」" not in joined
+        assert "对方称「哥哥」" not in joined
 
 
 def test_conversation_keeps_history_for_next_turn():
@@ -113,9 +98,7 @@ def test_wake_word_replies_without_calling_model():
         body = turned.json()
         assert body["react"]["code"] == "wake"
         profile = CharacterRepository().get("mei_li_kou")
-        assert body["assistant_text"] in {
-            fill_address(item, "姐姐") for item in profile.wake.replies
-        }
+        assert body["assistant_text"] in profile.wake.replies
         assert model.calls == 0
 
 
@@ -131,9 +114,7 @@ def test_low_mood_call_replies_without_calling_model():
         body = turned.json()
         assert body["react"]["code"] == "low_mood"
         profile = CharacterRepository().get("mei_li_kou")
-        assert body["assistant_text"] in {
-            fill_address(item, "姐姐") for item in profile.low_mood.replies
-        }
+        assert body["assistant_text"] in profile.low_mood.replies
         assert model.calls == 0
 
 

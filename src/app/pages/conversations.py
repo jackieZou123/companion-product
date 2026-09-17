@@ -63,7 +63,6 @@ async def create_conversation(
         _user_id(x_user_id),
         body.character_id,
         adult_confirmed=body.adult_confirmed,
-        gender=body.gender,
     )
     return _conversation_out(request, conversation)
 

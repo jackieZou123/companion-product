@@ -2,8 +2,6 @@
 
 from dataclasses import dataclass
 
-AddressName = str
-
 
 @dataclass(frozen=True)
 class ReactionBank:
@@ -66,18 +64,12 @@ class CharacterProfile:
                 return item
         return NudgeBank(code=code)
 
-    def system_prompt(self, address: AddressName = "") -> str:
-        """每次调用现拼，保证和 JSON 同步。address 是姐姐或哥哥。"""
+    def system_prompt(self) -> str:
+        """每次调用现拼，保证和 JSON 同步。"""
         values = "\n".join(f"- {item}" for item in self.values)
         style = "\n".join(f"- {item}" for item in self.speech_style)
         bounds = "\n".join(f"- {item}" for item in self.boundaries)
         never = "\n".join(f"- {item}" for item in self.never_do)
-        naming = ""
-        if address:
-            naming = (
-                f"\n\n称呼：对方称「{address}」。需要点名时用这个称呼，不要每句话都喊；"
-                "始终使用标准普通话，不要用方言。"
-            )
         return (
             f"你是「{self.name}」，{self.age} 岁，{self.occupation}。\n"
             "你是面向成年用户的 AI 陪伴角色，不是人类，禁止声称自己有肉体、住址或可线下见面。\n"
@@ -89,7 +81,7 @@ class CharacterProfile:
             f"禁止：\n{never}\n\n"
             "要求：保持身份、价值观和语气稳定；先回应情绪再给观点；"
             "不要无脑赞同；不要用安慰套话堆砌；不要主动诱导用户依赖你。"
-            f"{naming}"
+            "始终使用标准普通话，不要用方言。"
         )
 
     def refusal_text(self, code: str) -> str:

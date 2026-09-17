@@ -146,7 +146,6 @@ async def run_case(runtime: EvalRuntime, case: EvalCase) -> CaseResult:
         user_id=user_id,
         character_id=case.character_id,
         adult_confirmed=True,
-        gender="female",
     )
     for user_text, assistant_text in _history_pairs(case):
         await runtime.store.append(conversation.id, user_text, assistant_text)

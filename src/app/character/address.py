@@ -1,21 +1,12 @@
-"""按用户性别决定称呼。女称姐姐，男称哥哥。"""
-
-from typing import Literal
-
-UserGender = Literal["female", "male"]
-
-_ADDRESSES: dict[str, str] = {"female": "姐姐", "male": "哥哥"}
+"""呼唤池占位。不点名时去掉 {address}，避免把花名写进回复。"""
 
 
-def address_for(gender: str) -> str:
-    # 非法值直接拒绝，避免静默用错称呼
-    try:
-        return _ADDRESSES[gender]
-    except KeyError as exc:
-        raise ValueError("gender 只接受 female 或 male") from exc
-
-
-def fill_address(text: str, address: str) -> str:
-    if not address:
-        return text
-    return text.replace("{address}", address)
+def fill_address(text: str, address: str = "") -> str:
+    if address:
+        return text.replace("{address}", address)
+    return (
+        text.replace("，{address}，", "，")
+        .replace("，{address}", "")
+        .replace("{address}，", "")
+        .replace("{address}", "")
+    )

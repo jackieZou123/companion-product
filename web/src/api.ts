@@ -18,11 +18,8 @@ export type Conversation = {
 const KEYS = {
   user: "companion.user_id",
   adult: "companion.adult",
-  gender: "companion.gender",
   current: "companion.conversation_id",
 };
-
-export type UserGender = "female" | "male";
 
 function newUserId(): string {
   // http://局域网 IP 不是安全上下文，没有 crypto.randomUUID
@@ -67,23 +64,6 @@ export function loadAdult(): boolean {
 
 export function saveAdult(): void {
   storageSet(KEYS.adult, "1");
-}
-
-export function loadGender(): UserGender | "" {
-  const value = storageGet(KEYS.gender);
-  return value === "female" || value === "male" ? value : "";
-}
-
-export function saveGender(gender: UserGender): void {
-  storageSet(KEYS.gender, gender);
-}
-
-export function clearGender(): void {
-  try {
-    localStorage.removeItem(KEYS.gender);
-  } catch {
-    /* ignore */
-  }
 }
 
 export function loadCurrentId(): string {

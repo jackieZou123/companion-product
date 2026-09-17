@@ -3,7 +3,6 @@ import re
 import pytest
 
 from app.character import CharacterNotFoundError, CharacterRepository
-from app.character.address import fill_address
 from app.character.react import ReactPolicy
 from app.safety import SafetyPolicy
 
@@ -88,23 +87,12 @@ def test_output_review_allows_ordinary_reply():
     assert decision.allowed
 
 
-def test_system_prompt_names_female_as_jiejie():
-    prompt = CharacterRepository().get("mei_li_kou").system_prompt(address="姐姐")
-    assert "对方称「姐姐」" in prompt
-    assert "对方称「哥哥」" not in prompt
-    assert "不要每句话都喊" in prompt
-
-
-def test_system_prompt_names_male_as_gege():
-    prompt = CharacterRepository().get("mei_li_kou").system_prompt(address="哥哥")
-    assert "对方称「哥哥」" in prompt
+def test_system_prompt_does_not_assign_gendered_address():
+    prompt = CharacterRepository().get("mei_li_kou").system_prompt()
     assert "对方称「姐姐」" not in prompt
-
-
-def test_wake_word_fills_address():
-    profile = CharacterRepository().get("mei_li_kou")
-    decision = ReactPolicy().evaluate(profile, "玫莉蔻", address="姐姐")
-    assert decision.text in {fill_address(item, "姐姐") for item in profile.wake.replies}
+    assert "对方称「哥哥」" not in prompt
+    assert "不要用姐姐、哥哥或其它亲属称呼去点名" in prompt
+    assert "不要每句话都喊" in prompt
 
 
 def test_wake_word_picks_from_pool():

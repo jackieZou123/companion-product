@@ -22,8 +22,6 @@ class DialogueState:
     react_action: str = ""
     react_code: str = ""
     react_hint: str = ""
-    # 姐姐或哥哥，来自会话性别
-    address: str = ""
     # 召回块只进这一轮 System，不写进人设 JSON
     memory_block: str = ""
     assistant_text: str = ""

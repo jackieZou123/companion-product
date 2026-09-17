@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 from tests.helpers import FakeModel, FrozenClock, api_client, start_conversation
 
 from app.character import CharacterRepository
-from app.character.address import fill_address
 from app.nudge.policy import NudgePolicy
 
 _IDLE = timedelta(hours=24)
@@ -78,7 +77,7 @@ def test_nudge_empty_before_idle_then_appears():
         assert len(items) == 1
         assert items[0]["code"] == "idle_care"
         profile = CharacterRepository().get("mei_li_kou")
-        expected = {fill_address(item, "姐姐") for item in profile.nudge("idle_care").replies}
+        expected = set(profile.nudge("idle_care").replies)
         assert items[0]["text"] in expected
         again = client.get("/v1/me/nudges").json()
         assert again[0]["id"] == items[0]["id"]

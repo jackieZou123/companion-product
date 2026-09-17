@@ -52,7 +52,6 @@ class ReactPolicy:
         profile: CharacterProfile,
         text: str,
         salt: str = "",
-        address: str = "",
     ) -> ReactDecision:
         stripped = text.strip()
         if not stripped:
@@ -62,14 +61,12 @@ class ReactPolicy:
             return ReactDecision("none", "", "")
         mood = self._best_mood(profile, stripped)
         if mood is not None:
-            line = fill_address(
-                _pick(mood.replies, f"{mood.code}:{salt}:{stripped}"), address
-            )
+            line = fill_address(_pick(mood.replies, f"{mood.code}:{salt}:{stripped}"))
             leftover = _remainder(stripped, wake.triggers + mood.triggers)
             # 短句只应一声；后头还有事才把口吻交给生成
             action = "reply" if len(leftover) <= 8 else "hint"
             return ReactDecision(action, mood.code, line)
-        line = fill_address(_pick(wake.replies, f"wake:{salt}:{stripped}"), address)
+        line = fill_address(_pick(wake.replies, f"wake:{salt}:{stripped}"))
         leftover = _remainder(stripped, wake.triggers)
         action = "reply" if not leftover else "hint"
         return ReactDecision(action, "wake", line)

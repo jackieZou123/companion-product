@@ -48,7 +48,7 @@ src/app/
 
 ## 当前能力
 
-- `POST /v1/conversations` 创建一对一会话（`X-User-Id` + `adult_confirmed` + `gender`）
+- `POST /v1/conversations` 创建一对一会话（`X-User-Id` + `adult_confirmed`）
 - `GET /v1/conversations` 当前用户的会话列表
 - `GET /v1/conversations/{id}` 含历史消息；别人的会话返回 404
 - `DELETE /v1/conversations/{id}` 删除一条会话
@@ -99,7 +99,7 @@ curl -s http://127.0.0.1:8000/readyz
 curl -s http://127.0.0.1:8000/v1/conversations \
   -H 'content-type: application/json' \
   -H 'X-User-Id: u_1' \
-  -d '{"character_id":"mei_li_kou","adult_confirmed":true,"gender":"female"}'
+  -d '{"character_id":"mei_li_kou","adult_confirmed":true}'
 curl -s http://127.0.0.1:8000/v1/conversations/<conversation_id>/turns \
   -H 'content-type: application/json' \
   -H 'X-User-Id: u_1' \

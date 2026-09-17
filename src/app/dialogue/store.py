@@ -9,12 +9,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import selectinload
 
-from app.character.address import address_for
 from app.db.models import ConversationRow, MessageRow
 from app.dialogue.errors import (
     AdultNotConfirmedError,
     ConversationNotFoundError,
-    GenderRequiredError,
 )
 from app.dialogue.state import HistoryMessage
 
@@ -53,15 +51,10 @@ class SqlConversationStore:
         character_id: str,
         *,
         adult_confirmed: bool,
-        gender: str,
     ) -> Conversation:
         # 同一用户对同一角色只留一路，悬浮窗不能开出多段历史
         if not adult_confirmed:
             raise AdultNotConfirmedError()
-        try:
-            address_for(gender)
-        except ValueError as exc:
-            raise GenderRequiredError() from exc
         existing = await self._get_for_user_character(user_id, character_id)
         if existing is not None:
             return existing
@@ -71,7 +64,6 @@ class SqlConversationStore:
             user_id=user_id,
             character_id=character_id,
             adult_confirmed=True,
-            gender=gender,
             created_at=now,
             updated_at=now,
         )

@@ -19,12 +19,11 @@ def build_model_messages(
     history: list[HistoryMessage],
     user_text: str,
     react_hint: str = "",
-    address: str = "",
     memory_block: str = "",
 ) -> list[BaseMessage]:
     """拼 System + 历史 + 本轮用户句。流式和非流式都走这里。"""
     messages: list[BaseMessage] = [
-        SystemMessage(content=character.system_prompt(address=address))
+        SystemMessage(content=character.system_prompt())
     ]
     # 呼唤口吻只这一轮生效，不写进人设正文
     if react_hint:
@@ -71,7 +70,7 @@ def build_dialogue_graph(
         character = characters.get(state.character_id)
         salt = f"{state.conversation_id}:{len(state.history)}"
         decision = reactions.evaluate(
-            character, state.user_text, salt=salt, address=state.address
+            character, state.user_text, salt=salt
         )
         if decision.action == "reply":
             return {
@@ -102,7 +101,6 @@ def build_dialogue_graph(
             state.history,
             state.user_text,
             react_hint=state.react_hint,
-            address=state.address,
             memory_block=state.memory_block,
         )
         # 把父 span 的 metadata 传下去，LangSmith 才能把 LLM 调用挂到同一轮
