@@ -95,7 +95,7 @@ def build_dialogue_graph(
         return "remember" if state.assistant_text else "intent"
 
     def intent_node(state: DialogueState) -> dict:
-        decision = intents.evaluate(state.user_text)
+        decision = intents.evaluate(state.user_text, audience=state.audience)
         return {
             "intent_code": decision.code,
             "intent_slots": dict(decision.slots or {}),

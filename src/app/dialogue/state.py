@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from typing import TypedDict
 
+from app.audience import CUSTOMER
+
 
 class HistoryMessage(TypedDict):
     role: str
@@ -16,6 +18,7 @@ class DialogueState:
     user_id: str = ""
     character_id: str = ""
     user_text: str = ""
+    audience: str = CUSTOMER
     history: list[HistoryMessage] = field(default_factory=list)
     safety_action: str = ""
     safety_code: str = ""

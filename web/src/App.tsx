@@ -3,6 +3,7 @@ import brandLogo from "./assets/brand-logo.png";
 import {
   api,
   clearCurrentId,
+  headers,
   loadCurrentId,
   loadUserId,
   readSse,
@@ -82,10 +83,7 @@ export default function App() {
     setPendingAction(null);
     const response = await fetch(`/v1/conversations/${activeId}/turns/stream`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "X-User-Id": userId,
-      },
+      headers: headers(userId),
       body: JSON.stringify({ text }),
     });
     if (!response.ok) {

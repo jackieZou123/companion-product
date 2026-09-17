@@ -1,3 +1,4 @@
+from app.audience import CUSTOMER, STAFF
 from app.dialogue.intent import (
     BOOKING_STATUS,
     CARE_BOOKING,
@@ -27,6 +28,12 @@ def test_skin_talk_and_staff_ops_are_none():
     assert policy.evaluate("脸干得发紧，晚上还刺").code == NONE
     assert policy.evaluate("今晚谁值班").code == NONE
     assert policy.evaluate("产品使用状态").code == NONE
+
+
+def test_staff_audience_suppresses_customer_booking():
+    policy = IntentPolicy()
+    assert policy.evaluate("我想预约星期天的护理", audience=STAFF).code == NONE
+    assert policy.evaluate("我想预约星期天的护理", audience=CUSTOMER).code == CARE_BOOKING
 
 
 def test_wake_plus_booking_still_hits():

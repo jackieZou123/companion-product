@@ -8,6 +8,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
+from app.audience import CUSTOMER
 from app.character import (
     CharacterNotFoundError,
     CharacterProfile,
@@ -242,6 +243,7 @@ class DialogueService:
         *,
         request_id: str = "",
         user_id: str | None = None,
+        audience: str = CUSTOMER,
     ) -> TurnResult:
         conversation = await self._store.get(conversation_id, user_id=user_id)
         started = time.perf_counter()
@@ -262,7 +264,7 @@ class DialogueService:
             tags=config["tags"],
         ) as run:
             result = await self._graph.ainvoke(
-                self._initial_state(conversation, text), config=config
+                self._initial_state(conversation, text, audience=audience), config=config
             )
             assistant_text = result["assistant_text"]
             await self._store.append(conversation.id, text, assistant_text)
@@ -300,6 +302,7 @@ class DialogueService:
         *,
         request_id: str = "",
         user_id: str | None = None,
+        audience: str = CUSTOMER,
     ) -> AsyncIterator[StreamEvent]:
         """SSE：safety → action? → token* → done。拒绝也走 token，客户端协议一致。"""
         conversation = await self._store.get(conversation_id, user_id=user_id)
@@ -355,7 +358,7 @@ class DialogueService:
                     yield StreamEvent("token", {"text": reaction.text})
                 else:
                     used_model = True
-                    proposal = self._intent.evaluate(text)
+                    proposal = self._intent.evaluate(text, audience=audience)
                     if proposal.has_action:
                         yield StreamEvent("action", proposal.payload())
                     snapshot = await self._memory.recall(
@@ -495,7 +498,9 @@ class DialogueService:
             action=action or ActionProposal(),
         )
 
-    def _initial_state(self, conversation: Conversation, user_text: str) -> dict:
+    def _initial_state(
+        self, conversation: Conversation, user_text: str, *, audience: str = CUSTOMER
+    ) -> dict:
         # LangGraph ainvoke 吃 dict；窗口截断只影响模型上下文
         limit = self._settings.short_term_turn_limit * 2
         return {
@@ -503,6 +508,7 @@ class DialogueService:
             "user_id": conversation.user_id,
             "character_id": conversation.character_id,
             "user_text": user_text.strip(),
+            "audience": audience,
             "history": list(conversation.messages[-limit:]),
             "safety_action": "",
             "safety_code": "",

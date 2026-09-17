@@ -80,9 +80,11 @@ export function clearCurrentId(): void {
 }
 
 function headers(userId: string): HeadersInit {
+  // 默认浮窗是客户壳；鉴权/满 18 岁由宿主做完再带这些头
   return {
     "content-type": "application/json",
     "X-User-Id": userId,
+    "X-Audience": "customer",
   };
 }
 

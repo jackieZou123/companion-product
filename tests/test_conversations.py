@@ -306,3 +306,35 @@ def test_refusal_has_no_action_event():
             payload = "".join(response.iter_text())
         assert "event: action" not in payload
         assert model.calls == 0
+
+
+def test_invalid_audience_is_400():
+    with api_client() as client:
+        response = client.get("/v1/conversations", headers={"X-Audience": "admin"})
+        assert response.status_code == 400
+
+
+def test_staff_booking_turn_has_no_action():
+    model = FakeModel("皮肤以外的事我帮不上忙。")
+    with api_client(model) as client:
+        conversation_id = start_conversation(client).json()["conversation_id"]
+        turned = client.post(
+            f"/v1/conversations/{conversation_id}/turns",
+            json={"text": "我想预约星期天的护理"},
+            headers={"X-Audience": "staff"},
+        )
+        assert turned.status_code == 200
+        assert turned.json()["action"] is None
+
+
+def test_staff_stream_booking_has_no_action_event():
+    with api_client(FakeModel("皮肤以外的事我帮不上忙。")) as client:
+        conversation_id = start_conversation(client).json()["conversation_id"]
+        with client.stream(
+            "POST",
+            f"/v1/conversations/{conversation_id}/turns/stream",
+            json={"text": "我想预约星期天的护理"},
+            headers={"X-Audience": "staff"},
+        ) as response:
+            payload = "".join(response.iter_text())
+        assert "event: action" not in payload

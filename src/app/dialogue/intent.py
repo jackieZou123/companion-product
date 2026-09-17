@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 import re
 
+from app.audience import CUSTOMER, STAFF
+
 NONE = "none"
 CARE_BOOKING = "care_booking"
 BOOKING_STATUS = "booking_status"
@@ -70,9 +72,12 @@ class ActionProposal:
 class IntentPolicy:
     """安全门之后、生成之前。店员排班不在这里识别。"""
 
-    def evaluate(self, text: str) -> ActionProposal:
+    def evaluate(self, text: str, *, audience: str = CUSTOMER) -> ActionProposal:
         stripped = text.strip()
         if not stripped:
+            return ActionProposal()
+        # 店员端另走开，客户预约动作不发给店员壳
+        if audience == STAFF:
             return ActionProposal()
         if _BOOKING_STATUS.search(stripped):
             return _action(BOOKING_STATUS, confirm=False)
