@@ -50,7 +50,7 @@ def test_second_turn_injects_skin_type_into_model_messages():
         ]
 
 
-def test_memory_survives_new_conversation():
+def test_second_create_reuses_conversation_and_memory():
     model = FakeModel("先停掉刺激的步骤。")
     with api_client(model) as client:
         first_id = start_conversation(client).json()["conversation_id"]
@@ -58,9 +58,10 @@ def test_memory_survives_new_conversation():
             f"/v1/conversations/{first_id}/turns",
             json={"text": "我是干皮，晚上还刺"},
         )
-        second_id = start_conversation(client).json()["conversation_id"]
+        second = start_conversation(client).json()
+        assert second["conversation_id"] == first_id
         client.post(
-            f"/v1/conversations/{second_id}/turns",
+            f"/v1/conversations/{first_id}/turns",
             json={"text": "还是停不下来"},
         )
         contents = [getattr(item, "content", "") for item in model.last_messages]

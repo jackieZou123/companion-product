@@ -55,12 +55,16 @@ class SqlConversationStore:
         adult_confirmed: bool,
         gender: str,
     ) -> Conversation:
+        # 同一用户对同一角色只留一路，悬浮窗不能开出多段历史
         if not adult_confirmed:
             raise AdultNotConfirmedError()
         try:
             address_for(gender)
         except ValueError as exc:
             raise GenderRequiredError() from exc
+        existing = await self._get_for_user_character(user_id, character_id)
+        if existing is not None:
+            return existing
         now = _utcnow()
         row = ConversationRow(
             id=str(uuid4()),
@@ -71,9 +75,15 @@ class SqlConversationStore:
             created_at=now,
             updated_at=now,
         )
-        async with self._session_factory() as session:
-            async with session.begin():
-                session.add(row)
+        try:
+            async with self._session_factory() as session:
+                async with session.begin():
+                    session.add(row)
+        except IntegrityError:
+            raced = await self._get_for_user_character(user_id, character_id)
+            if raced is None:
+                raise
+            return raced
         return _to_conversation(row, [])
 
     async def get(
@@ -122,10 +132,16 @@ class SqlConversationStore:
         ]
 
     async def latest_for_user(self, user_id: str, character_id: str) -> Conversation | None:
+        return await self._get_for_user_character(user_id, character_id)
+
+    async def _get_for_user_character(
+        self, user_id: str, character_id: str
+    ) -> Conversation | None:
         async with self._session_factory() as session:
             row = (
                 await session.execute(
                     select(ConversationRow)
+                    .options(selectinload(ConversationRow.messages))
                     .where(
                         ConversationRow.user_id == user_id,
                         ConversationRow.character_id == character_id,
@@ -136,7 +152,7 @@ class SqlConversationStore:
             ).scalar_one_or_none()
         if row is None:
             return None
-        return _to_conversation(row, [], message_count=0)
+        return _to_conversation(row, row.messages)
 
     async def export_for_user(self, user_id: str) -> list[Conversation]:
         async with self._session_factory() as session:

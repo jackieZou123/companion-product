@@ -57,11 +57,21 @@ def test_list_only_own_conversations():
         assert {item["conversation_id"] for item in listed} == {mine}
 
 
+def test_create_reuses_same_conversation():
+    with api_client() as client:
+        first = start_conversation(client, gender="female").json()
+        again = start_conversation(client, gender="male").json()
+        assert again["conversation_id"] == first["conversation_id"]
+        assert again["gender"] == "female"
+        listed = client.get("/v1/conversations").json()
+        assert len(listed) == 1
+        assert listed[0]["conversation_id"] == first["conversation_id"]
+
+
 def test_delete_conversation_and_user_data():
     model = FakeModel("先别抓。")
     with api_client(model) as client:
         first = start_conversation(client).json()["conversation_id"]
-        second = start_conversation(client).json()["conversation_id"]
         client.post(
             f"/v1/conversations/{first}/turns",
             json={"text": "脸干得发紧，晚上还刺"},
@@ -71,9 +81,10 @@ def test_delete_conversation_and_user_data():
         assert client.get(f"/v1/conversations/{first}").status_code == 404
         export = client.get("/v1/me/export").json()
         assert export["user_id"] == "u_1"
-        assert len(export["conversations"]) == 1
-        assert export["conversations"][0]["conversation_id"] == second
+        assert export["conversations"] == []
         assert "memory" in export
+        second = start_conversation(client).json()["conversation_id"]
+        assert second != first
         wiped = client.delete("/v1/me")
         assert wiped.status_code == 200
         assert wiped.json()["deleted"] == 1

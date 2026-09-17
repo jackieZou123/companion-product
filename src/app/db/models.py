@@ -16,6 +16,9 @@ class Base(DeclarativeBase):
 
 class ConversationRow(Base):
     __tablename__ = "conversations"
+    __table_args__ = (
+        UniqueConstraint("user_id", "character_id", name="uq_conversation_user_character"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(64), index=True)

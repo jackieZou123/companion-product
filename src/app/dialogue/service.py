@@ -99,6 +99,7 @@ class DialogueService:
     ) -> Conversation:
         resolved = character_id or self._characters.default_id()
         self._characters.get(resolved)
+        # 已有会话直接复用，性别以第一次为准
         return await self._store.create(
             user_id=user_id,
             character_id=resolved,
