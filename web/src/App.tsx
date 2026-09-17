@@ -10,6 +10,7 @@ import {
   type ChatMessage,
   type Conversation,
   type Thread,
+  type ActionProposal,
 } from "./api";
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [pendingAction, setPendingAction] = useState<ActionProposal | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
 
   async function openConversation(id: string) {
@@ -77,6 +79,7 @@ export default function App() {
     }
     setMessages((current) => [...current, { role: "user", content: text }, { role: "assistant", content: "" }]);
     setStatus("玫莉蔻正在回复…");
+    setPendingAction(null);
     const response = await fetch(`/v1/conversations/${activeId}/turns/stream`, {
       method: "POST",
       headers: {
@@ -96,6 +99,9 @@ export default function App() {
       }
       if (event === "review" && data.code === "output_blocked") {
         setMessages((current) => patchLastAssistant(current, ""));
+      }
+      if (event === "action") {
+        setPendingAction(readAction(data));
       }
       if (event === "done") {
         if (typeof data.assistant_text === "string") {
@@ -213,7 +219,27 @@ export default function App() {
             </ol>
             {status ? <p className="status">{status}</p> : null}
           </div>
-          <form className="composer" onSubmit={onSubmit}>
+          <div className="widget-foot">
+            {pendingAction?.code === "care_booking" ? (
+              <div className="action-card">
+                <p>{actionLabel(pendingAction)}</p>
+                <div className="action-row">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingAction(null);
+                      setStatus("预约已交给系统，以屏幕上的确认为准。");
+                    }}
+                  >
+                    确认预约
+                  </button>
+                  <button type="button" className="ghost" onClick={() => setPendingAction(null)}>
+                    取消
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <form className="composer" onSubmit={onSubmit}>
             <label className="sr-only" htmlFor="draft">
               说点什么
             </label>
@@ -235,6 +261,7 @@ export default function App() {
               发送
             </button>
           </form>
+          </div>
         </section>
       ) : (
         <button
@@ -256,6 +283,42 @@ export default function App() {
 function BrandMark({ compact = false }: { compact?: boolean }) {
   const className = ["brand-logo", compact ? "compact" : ""].filter(Boolean).join(" ");
   return <img className={className} src={brandLogo} alt="玫莉蔻" />;
+}
+
+const DATE_LABEL: Record<string, string> = {
+  sunday: "星期天",
+  monday: "星期一",
+  tuesday: "星期二",
+  wednesday: "星期三",
+  thursday: "星期四",
+  friday: "星期五",
+  saturday: "星期六",
+  tomorrow: "明天",
+  day_after_tomorrow: "后天",
+  tonight: "今晚",
+};
+
+function readAction(data: Record<string, unknown>): ActionProposal | null {
+  if (typeof data.code !== "string" || data.code === "none") return null;
+  const slots =
+    data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)
+      ? Object.fromEntries(
+          Object.entries(data.slots as Record<string, unknown>).filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string",
+          ),
+        )
+      : {};
+  return {
+    code: data.code,
+    slots,
+    confirm_required: data.confirm_required === true,
+  };
+}
+
+function actionLabel(action: ActionProposal): string {
+  const when = DATE_LABEL[action.slots.date_hint] || "";
+  if (when) return `${when} · 护理`;
+  return "护理预约";
 }
 
 function lastAssistant(messages: ChatMessage[]): string {

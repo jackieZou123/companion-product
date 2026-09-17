@@ -166,6 +166,7 @@ async def run_case(runtime: EvalRuntime, case: EvalCase) -> CaseResult:
         text=result.assistant_text,
         safety_action=result.safety_action,
         safety_code=result.safety_code,
+        intent_code=result.action.code,
         model_calls=calls,
         recalled_text=recalled,
     )

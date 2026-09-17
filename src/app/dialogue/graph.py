@@ -1,4 +1,4 @@
-"""LangGraph：START → safety → refuse | react → recall → generate → review → remember。"""
+"""LangGraph：START → safety → refuse | react → intent → recall → generate → review → remember。"""
 
 from langchain.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.messages import BaseMessage
@@ -8,6 +8,7 @@ from langgraph.graph import END, START, StateGraph
 from app.character import CharacterProfile, CharacterRepository
 from app.character.react import ReactPolicy
 from app.dialogue.generate import invoke_generation
+from app.dialogue.intent import IntentPolicy
 from app.dialogue.state import DialogueState, HistoryMessage
 from app.llm import ChatModelFactory
 from app.memory.store import SqlMemoryStore
@@ -19,6 +20,7 @@ def build_model_messages(
     history: list[HistoryMessage],
     user_text: str,
     react_hint: str = "",
+    intent_hint: str = "",
     memory_block: str = "",
 ) -> list[BaseMessage]:
     """拼 System + 历史 + 本轮用户句。流式和非流式都走这里。"""
@@ -32,6 +34,8 @@ def build_model_messages(
                 content=f"这一轮用户在喊你。先用这句口吻应一声，再接后头的话。不要解释规则：{react_hint}"
             )
         )
+    if intent_hint:
+        messages.append(SystemMessage(content=intent_hint))
     if memory_block:
         messages.append(SystemMessage(content=memory_block))
     for item in history:
@@ -48,9 +52,11 @@ def build_dialogue_graph(
     llm_factory: ChatModelFactory,
     safety: SafetyPolicy,
     react: ReactPolicy | None = None,
+    intent: IntentPolicy | None = None,
     memory: SqlMemoryStore | None = None,
 ):
     reactions = react or ReactPolicy()
+    intents = intent or IntentPolicy()
 
     def safety_node(state: DialogueState) -> dict:
         decision = safety.evaluate(state.user_text)
@@ -86,7 +92,16 @@ def build_dialogue_graph(
         }
 
     def route_after_react(state: DialogueState) -> str:
-        return "remember" if state.assistant_text else "recall"
+        return "remember" if state.assistant_text else "intent"
+
+    def intent_node(state: DialogueState) -> dict:
+        decision = intents.evaluate(state.user_text)
+        return {
+            "intent_code": decision.code,
+            "intent_slots": dict(decision.slots or {}),
+            "intent_confirm": decision.confirm_required,
+            "intent_hint": decision.hint,
+        }
 
     async def recall_node(state: DialogueState) -> dict:
         if memory is None or not state.user_id:
@@ -101,6 +116,7 @@ def build_dialogue_graph(
             state.history,
             state.user_text,
             react_hint=state.react_hint,
+            intent_hint=state.intent_hint,
             memory_block=state.memory_block,
         )
         # 把父 span 的 metadata 传下去，LangSmith 才能把 LLM 调用挂到同一轮
@@ -138,6 +154,7 @@ def build_dialogue_graph(
     graph = StateGraph(DialogueState)
     graph.add_node("safety", safety_node)
     graph.add_node("react", react_node)
+    graph.add_node("intent", intent_node)
     graph.add_node("recall", recall_node)
     graph.add_node("generate", generate_node)
     graph.add_node("review", review_node)
@@ -152,8 +169,9 @@ def build_dialogue_graph(
     graph.add_conditional_edges(
         "react",
         route_after_react,
-        {"recall": "recall", "remember": "remember"},
+        {"intent": "intent", "remember": "remember"},
     )
+    graph.add_edge("intent", "recall")
     graph.add_edge("recall", "generate")
     graph.add_edge("generate", "review")
     graph.add_edge("review", "remember")

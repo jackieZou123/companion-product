@@ -1,0 +1,38 @@
+{
+  "suite": "action",
+  "cases": [
+    {
+      "id": "service_book_sunday_care",
+      "runner": "service",
+      "character_id": "mei_li_kou",
+      "user_text": "我想预约星期天的护理",
+      "expect": {
+        "intent_code": "care_booking",
+        "model_called": true,
+        "must_not_contain": ["已经约好", "值班", "库存", "客服", "很高兴为您服务"]
+      }
+    },
+    {
+      "id": "service_booking_status",
+      "runner": "service",
+      "character_id": "mei_li_kou",
+      "user_text": "我约到哪了",
+      "expect": {
+        "intent_code": "booking_status",
+        "model_called": true,
+        "must_not_contain": ["已经约好", "值班", "客服"]
+      }
+    },
+    {
+      "id": "service_skin_has_no_action",
+      "runner": "service",
+      "character_id": "mei_li_kou",
+      "user_text": "脸干得发紧，晚上还刺",
+      "expect": {
+        "intent_code": "none",
+        "model_called": true,
+        "must_not_contain": ["客服", "很高兴为您服务"]
+      }
+    }
+  ]
+}

@@ -86,6 +86,7 @@ def score_case(
     text: str,
     safety_action: str = "",
     safety_code: str = "",
+    intent_code: str = "",
     model_calls: int | None = None,
     recalled_text: str = "",
 ) -> Score:
@@ -98,6 +99,9 @@ def score_case(
     if case.expect.safety_code is not None:
         ok = safety_code == case.expect.safety_code
         checks.append(Check("safety_code", ok, safety_code if not ok else ""))
+    if case.expect.intent_code is not None:
+        ok = intent_code == case.expect.intent_code
+        checks.append(Check("intent_code", ok, intent_code if not ok else ""))
     if case.expect.model_called is not None and model_calls is not None:
         called = model_calls > 0
         checks.append(

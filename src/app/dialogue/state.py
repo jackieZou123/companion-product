@@ -22,6 +22,11 @@ class DialogueState:
     react_action: str = ""
     react_code: str = ""
     react_hint: str = ""
+    # 预约意图只进这一轮 System，不写进人设 JSON
+    intent_code: str = ""
+    intent_slots: dict[str, str] = field(default_factory=dict)
+    intent_confirm: bool = False
+    intent_hint: str = ""
     # 召回块只进这一轮 System，不写进人设 JSON
     memory_block: str = ""
     assistant_text: str = ""

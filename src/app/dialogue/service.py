@@ -18,6 +18,7 @@ from app.character.react import ReactPolicy
 from app.config import Settings
 from app.dialogue.generate import Generation, astream_generation
 from app.dialogue.graph import build_dialogue_graph, build_model_messages
+from app.dialogue.intent import ActionProposal, IntentPolicy, NONE
 from app.dialogue.store import (
     Conversation,
     ConversationNotFoundError,
@@ -45,12 +46,25 @@ class TurnResult:
     model: str
     degraded: bool
     latency_ms: int
+    action: ActionProposal = ActionProposal()
 
 
 @dataclass(frozen=True)
 class StreamEvent:
     event: str
     data: dict[str, Any]
+
+
+def _action_from_graph(result: dict[str, Any]) -> ActionProposal:
+    code = result.get("intent_code") or NONE
+    if code == NONE:
+        return ActionProposal()
+    slots = result.get("intent_slots") or {}
+    return ActionProposal(
+        code=code,
+        slots=dict(slots),
+        confirm_required=bool(result.get("intent_confirm")),
+    )
 
 
 class DialogueService:
@@ -77,11 +91,16 @@ class DialogueService:
         self._nudges = nudges
         self._safety = safety or SafetyPolicy()
         self._react = react or ReactPolicy()
+        self._intent = IntentPolicy()
         self._latency = latency or LatencyWindow()
         self._nudge_policy = NudgePolicy()
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._graph = build_dialogue_graph(
-            characters, llm_factory, self._safety, self._react, memory
+            characters,
+            llm_factory,
+            self._safety,
+            self._react,
+            memory=memory,
         )
 
     async def ping(self) -> None:
@@ -257,6 +276,7 @@ class DialogueService:
                 result.get("model_used") or self._settings.llm_model,
                 bool(result.get("degraded")),
                 started,
+                _action_from_graph(result),
             )
             run.end(
                 outputs={
@@ -268,6 +288,7 @@ class DialogueService:
                     "model": finished.model,
                     "degraded": finished.degraded,
                     "latency_ms": finished.latency_ms,
+                    "action": finished.action.payload() if finished.action.has_action else None,
                 }
             )
             return finished
@@ -280,7 +301,7 @@ class DialogueService:
         request_id: str = "",
         user_id: str | None = None,
     ) -> AsyncIterator[StreamEvent]:
-        """SSE：safety → token* → done。拒绝也走 token，客户端协议一致。"""
+        """SSE：safety → action? → token* → done。拒绝也走 token，客户端协议一致。"""
         conversation = await self._store.get(conversation_id, user_id=user_id)
         started = time.perf_counter()
         text = user_text.strip()
@@ -307,6 +328,7 @@ class DialogueService:
             pieces: list[str] = []
             react_action = "none"
             react_code = ""
+            proposal = ActionProposal()
             model_used = self._settings.llm_model
             degraded = False
             used_model = False
@@ -333,6 +355,9 @@ class DialogueService:
                     yield StreamEvent("token", {"text": reaction.text})
                 else:
                     used_model = True
+                    proposal = self._intent.evaluate(text)
+                    if proposal.has_action:
+                        yield StreamEvent("action", proposal.payload())
                     snapshot = await self._memory.recall(
                         conversation.user_id, conversation.character_id
                     )
@@ -343,6 +368,7 @@ class DialogueService:
                         text,
                         config,
                         react_hint=reaction.text,
+                        intent_hint=proposal.hint,
                         memory_block=snapshot.prompt_block(),
                     ):
                         if isinstance(item, Generation):
@@ -385,6 +411,7 @@ class DialogueService:
                 model_used,
                 degraded,
                 started,
+                proposal,
             )
             run.end(
                 outputs={
@@ -396,6 +423,7 @@ class DialogueService:
                     "model": result.model,
                     "degraded": result.degraded,
                     "latency_ms": result.latency_ms,
+                    "action": result.action.payload() if result.action.has_action else None,
                 }
             )
             yield StreamEvent(
@@ -408,6 +436,7 @@ class DialogueService:
                         "code": result.safety_code,
                     },
                     "react": {"action": result.react_action, "code": result.react_code},
+                    "action": result.action.payload() if result.action.has_action else None,
                     "model": result.model,
                     "degraded": result.degraded,
                     "latency_ms": result.latency_ms,
@@ -421,6 +450,7 @@ class DialogueService:
         user_text: str,
         config: RunnableConfig,
         react_hint: str = "",
+        intent_hint: str = "",
         memory_block: str = "",
     ) -> AsyncIterator[str | Generation]:
         history = conversation.messages[-self._settings.short_term_turn_limit * 2 :]
@@ -429,6 +459,7 @@ class DialogueService:
             history,
             user_text,
             react_hint=react_hint,
+            intent_hint=intent_hint,
             memory_block=memory_block,
         )
         async for item in astream_generation(
@@ -447,6 +478,7 @@ class DialogueService:
         model: str,
         degraded: bool,
         started: float,
+        action: ActionProposal | None = None,
     ) -> TurnResult:
         latency_ms = int((time.perf_counter() - started) * 1000)
         self._latency.observe(latency_ms)
@@ -460,6 +492,7 @@ class DialogueService:
             model=model,
             degraded=degraded,
             latency_ms=latency_ms,
+            action=action or ActionProposal(),
         )
 
     def _initial_state(self, conversation: Conversation, user_text: str) -> dict:
@@ -476,6 +509,10 @@ class DialogueService:
             "react_action": "",
             "react_code": "",
             "react_hint": "",
+            "intent_code": NONE,
+            "intent_slots": {},
+            "intent_confirm": False,
+            "intent_hint": "",
             "memory_block": "",
             "assistant_text": "",
             "model_used": "",

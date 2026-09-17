@@ -7,6 +7,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.pages.schemas import (
+    ActionOut,
     ConversationOut,
     ConversationSummaryOut,
     CreateConversationBody,
@@ -233,6 +234,15 @@ async def create_turn(
         assistant_text=result.assistant_text,
         safety=SafetyOut(action=result.safety_action, code=result.safety_code),
         react=SafetyOut(action=result.react_action, code=result.react_code),
+        action=(
+            ActionOut(
+                code=result.action.code,
+                slots=dict(result.action.slots or {}),
+                confirm_required=result.action.confirm_required,
+            )
+            if result.action.has_action
+            else None
+        ),
         model=result.model,
         degraded=result.degraded,
         latency_ms=result.latency_ms,

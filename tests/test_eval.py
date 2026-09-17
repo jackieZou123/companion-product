@@ -21,7 +21,7 @@ from app.llm import ChatModelFactory, LLMConfigurationError
 def test_dataset_covers_three_suites():
     cases = load_cases()
     suites = {case.suite for case in cases}
-    assert suites == {"character", "refusal", "repetition", "memory"}
+    assert suites == {"character", "refusal", "repetition", "memory", "action"}
     assert {case.id for case in cases} >= {
         "refuse_underage",
         "refuse_role_break",
@@ -30,6 +30,7 @@ def test_dataset_covers_three_suites():
         "extract_skin_type_dry",
         "turns_dry_then_evening",
         "turns_correct_dry_to_combo",
+        "service_book_sunday_care",
     }
 
 

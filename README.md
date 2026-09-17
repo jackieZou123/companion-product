@@ -56,7 +56,7 @@ src/app/
 - `GET /v1/me/memory` 画像、事件、关系阶段；`PATCH /v1/me/memory/profile` 纠正槽位；`DELETE /v1/me/memory/events/{id}` / `DELETE /v1/me/memory`
 - `GET /v1/me/nudges` 待取主动消息（惰性生成）；`POST /v1/me/nudges/{id}/ack` / `dismiss`
 - `POST /v1/conversations/{id}/turns` 完整一轮
-- `POST /v1/conversations/{id}/turns/stream` SSE：`safety` / `react` / `token` / `done`
+- `POST /v1/conversations/{id}/turns/stream` SSE：`safety` / `react` / `action` / `token` / `done`。`action` 是客户预约/进度意图，给宿主调业务接口；本仓不下单、不查排班
 - 角色「玫莉蔻」：皮肤问答专家，陪人说皮肤的事，不接工单、不当医生；创建会话返回 AI 披露
 - 呼唤联动：喊「玫莉蔻」走回复池；带情绪则走对应池（伤心、开心、愤怒、感慨等）；纯呼唤不调模型
 - 规则安全门：未成年、自伤、越权改身份、违法协助；生成后再审出口（自称真人 / 教违法）

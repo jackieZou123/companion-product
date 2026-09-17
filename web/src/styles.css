@@ -246,6 +246,40 @@ button {
   font-size: 0.8rem;
 }
 
+.action-card {
+  margin: 0 0.75rem 0.45rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(243, 238, 228, 0.16);
+  border-radius: 14px;
+  background: rgba(243, 238, 228, 0.08);
+}
+
+.action-card p {
+  margin: 0 0 0.55rem;
+  font-size: 0.9rem;
+}
+
+.action-row {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.action-row button {
+  flex: 1;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  background: var(--leaf);
+  color: #f4fbf8;
+  font: inherit;
+}
+
+.action-row button.ghost {
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid rgba(243, 238, 228, 0.22);
+}
+
 .composer {
   display: grid;
   grid-template-columns: 1fr auto;

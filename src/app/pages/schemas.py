@@ -160,11 +160,18 @@ class SafetyOut(BaseModel):
     code: str
 
 
+class ActionOut(BaseModel):
+    code: str
+    slots: dict[str, str] = Field(default_factory=dict)
+    confirm_required: bool = False
+
+
 class TurnOut(BaseModel):
     conversation_id: str
     assistant_text: str
     safety: SafetyOut
     react: SafetyOut
+    action: ActionOut | None = None
     model: str
     degraded: bool = False
     latency_ms: int

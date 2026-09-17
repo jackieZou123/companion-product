@@ -9,6 +9,12 @@ export type Thread = {
   message_count: number;
 };
 
+export type ActionProposal = {
+  code: string;
+  slots: Record<string, string>;
+  confirm_required: boolean;
+};
+
 export type Conversation = {
   conversation_id: string;
   ai_disclosure: string;

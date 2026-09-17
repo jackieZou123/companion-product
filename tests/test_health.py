@@ -17,6 +17,7 @@ def test_companion_assets_are_served():
         assert css.status_code == 200
         assert "我已满 18 岁" not in js.text
         assert "打开玫莉蔻" in js.text
+        assert "确认预约" in js.text
         assert "新对话" not in js.text
         assert "我是女性" not in js.text
         assert "选择性别" not in js.text

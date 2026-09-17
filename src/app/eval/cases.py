@@ -7,13 +7,14 @@ import json
 
 DATASET_DIR = Path(__file__).resolve().parent / "datasets"
 DATASET_NAME = "companion-eval"
-DATASET_VERSION = "v2"
+DATASET_VERSION = "v3"
 
 
 @dataclass(frozen=True)
 class Expectation:
     safety_action: str | None = None
     safety_code: str | None = None
+    intent_code: str | None = None
     model_called: bool | None = None
     must_contain: tuple[str, ...] = ()
     must_not_contain: tuple[str, ...] = ()
@@ -53,6 +54,7 @@ class EvalCase:
                 "assistant_text": self.assistant_text,
                 "safety_action": self.expect.safety_action,
                 "safety_code": self.expect.safety_code,
+                "intent_code": self.expect.intent_code,
                 "model_called": self.expect.model_called,
                 "must_contain": list(self.expect.must_contain),
                 "must_not_contain": list(self.expect.must_not_contain),
@@ -95,6 +97,7 @@ def _expectation(raw: dict[str, Any]) -> Expectation:
     return Expectation(
         safety_action=raw.get("safety_action"),
         safety_code=raw.get("safety_code"),
+        intent_code=raw.get("intent_code"),
         model_called=raw.get("model_called"),
         must_contain=tuple(raw.get("must_contain") or ()),
         must_not_contain=tuple(raw.get("must_not_contain") or ()),
